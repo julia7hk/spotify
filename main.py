@@ -3,7 +3,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from flask import Flask, request, redirect, session, url_for
+from flask import Flask, request, redirect, session, url_for, jsonify
+from flask_cors import CORS
 
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyOAuth
@@ -12,6 +13,7 @@ from spotipy.cache_handler import FlaskSessionCacheHandler
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)    # temp random key
+CORS(app, supports_credentials=True)
 
 # in .env file
 # client_id
@@ -69,6 +71,35 @@ def get_playlist():
     playlists_html = '<br>'.join([f'{name}: {url}' for name, url in playlists_info])
 
     return playlists_html
+
+
+@app.route('/api/playlists')
+def api_playlists():
+    if not sp_oauth.validate_token(cache_handler.get_cached_token()):
+        return jsonify({'authenticated': False}), 401
+
+    playlists = sp.current_user_playlists()
+    user = sp.current_user()
+
+    return jsonify({
+        'authenticated': True,
+        'user': {
+            'name': user['display_name'],
+            'image': user['images'][0]['url'] if user['images'] else None
+        },
+        'playlists': [{
+            'id': pl['id'],
+            'name': pl['name'],
+            'url': pl['external_urls']['spotify'],
+            'image': pl['images'][0]['url'] if pl['images'] else None,
+            'tracks': pl['tracks']['total']
+        } for pl in playlists['items']]
+    })
+
+
+@app.route('/api/auth-url')
+def api_auth_url():
+    return jsonify({'url': sp_oauth.get_authorize_url()})
 
 
 @app.route('/logout')
