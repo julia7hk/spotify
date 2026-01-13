@@ -15,15 +15,12 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)    # temp random key
 CORS(app, supports_credentials=True)
 
-# in .env file
-# client_id
-# client_secret
-# redirect_uri
+# in .env file:
+    # client_id
+    # client_secret
+    # redirect_uri
 
-scope = 'playlist-read-private'
-
-# multiple scopes
-# scope = 'playlist-read-private,streaming' 
+scope = 'playlist-read-private user-top-read user-read-recently-played'
 
 
 cache_handler = FlaskSessionCacheHandler(session)
@@ -100,6 +97,67 @@ def api_playlists():
 @app.route('/api/auth-url')
 def api_auth_url():
     return jsonify({'url': sp_oauth.get_authorize_url()})
+
+
+@app.route('/api/top-artists')
+def api_top_artists():
+    if not sp_oauth.validate_token(cache_handler.get_cached_token()):
+        return jsonify({'authenticated': False}), 401
+
+    top_artists = sp.current_user_top_artists(limit=20, time_range='medium_term')
+
+    return jsonify({
+        'authenticated': True,
+        'top_artists': [{
+            'id': artist['id'],
+            'name': artist['name'],
+            'genres': artist['genres'],
+            'popularity': artist['popularity'],
+            'url': artist['external_urls']['spotify'],
+            'image': artist['images'][0]['url'] if artist['images'] else None
+        } for artist in top_artists['items']]
+    })
+
+
+@app.route('/api/top-tracks')
+def api_top_tracks():
+    if not sp_oauth.validate_token(cache_handler.get_cached_token()):
+        return jsonify({'authenticated': False}), 401
+
+    top_tracks = sp.current_user_top_tracks(limit=20, time_range='medium_term')
+
+    return jsonify({
+        'authenticated': True,
+        'top_tracks': [{
+            'id': track['id'],
+            'name': track['name'],
+            'artist': track['artists'][0]['name'],
+            'album': track['album']['name'],
+            'url': track['external_urls']['spotify'],
+            'image': track['album']['images'][0]['url'] if track['album']['images'] else None
+        } for track in top_tracks['items']]
+    })
+
+
+@app.route('/api/recently-played')
+def api_recently_played():
+    if not sp_oauth.validate_token(cache_handler.get_cached_token()):
+        return jsonify({'authenticated': False}), 401
+
+    recently_played = sp.current_user_recently_played(limit=20)
+
+    return jsonify({
+        'authenticated': True,
+        'recently_played': [{
+            'id': item['track']['id'],
+            'name': item['track']['name'],
+            'artist': item['track']['artists'][0]['name'],
+            'album': item['track']['album']['name'],
+            'played_at': item['played_at'],
+            'url': item['track']['external_urls']['spotify'],
+            'image': item['track']['album']['images'][0]['url'] if item['track']['album']['images'] else None
+        } for item in recently_played['items']]
+    })
 
 
 @app.route('/logout')
