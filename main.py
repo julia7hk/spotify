@@ -159,6 +159,64 @@ def api_recently_played():
         } for item in recently_played['items']]
     })
 
+# for dashboard ui purposes later i suppose
+@app.route('/api/me')
+def api_me():
+    if not sp_oauth.validate_token(cache_handler.get_cached_token()):
+        return jsonify({'authenticated': False}), 401
+
+    user = sp.current_user()
+    return jsonify({
+        'id': user['id'],
+        'name': user['display_name'],
+        'image': user['images'][0]['url'] if user['images'] else None,
+        'followers': user['followers']['total']
+    })
+
+
+@app.route('/api/listening-profile')
+def api_listening_profile():
+    if not sp_oauth.validate_token(cache_handler.get_cached_token()):
+        return jsonify({'authenticated': False}), 401
+
+    top_tracks = sp.current_user_top_tracks(limit=20)
+    top_artists = sp.current_user_top_artists(limit=20)
+
+    # ---- Genre aggregation ----
+    genre_count = {}
+    for artist in top_artists['items']:
+        for genre in artist['genres']:
+            genre_count[genre] = genre_count.get(genre, 0) + 1
+
+    # ---- Track metadata ----
+    tracks = []
+    for t in top_tracks['items']:
+        tracks.append({
+            'name': t['name'],
+            'popularity': t['popularity'],
+            'duration_ms': t['duration_ms'],
+            'explicit': t['explicit'],
+            'release_year': t['album']['release_date'][:4]
+        })
+
+    avg_popularity = sum(t['popularity'] for t in tracks) / len(tracks)
+    avg_duration = sum(t['duration_ms'] for t in tracks) / len(tracks)
+
+    return jsonify({
+        'top_genres': sorted(
+            genre_count.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )[:10],
+        'avg_popularity': round(avg_popularity, 1),
+        'avg_duration_min': round(avg_duration / 60000, 2),
+        'explicit_ratio': round(
+            sum(1 for t in tracks if t['explicit']) / len(tracks),
+            2
+        ),
+        'release_years': [t['release_year'] for t in tracks]
+    })
+
 
 @app.route('/logout')
 def logout():
