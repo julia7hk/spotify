@@ -10,6 +10,10 @@ npm run dev
 ```
 
 
+<img width="804" height="952" alt="image" src="https://github.com/user-attachments/assets/c01dc4ad-a1d7-4d0b-9a51-902f047ee40c" />
+
+
+
 # Project Goals
 
 1. spotify dashboard
