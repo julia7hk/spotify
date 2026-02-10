@@ -1,3 +1,15 @@
+# how to run
+Flask API (5001)
+```
+source venv/bin/activate && python main.py
+```
+
+Next.js (3000)
+```
+npm run dev
+```
+
+
 # Project Goals
 
 1. spotify dashboard
