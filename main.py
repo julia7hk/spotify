@@ -12,8 +12,9 @@ from spotipy.cache_handler import FlaskSessionCacheHandler
 
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.urandom(24)    # temp random key
-CORS(app, supports_credentials=True)
+app.config['SECRET_KEY'] = 'spotify-dashboard-dev-key'
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+CORS(app, supports_credentials=True, origins=["http://127.0.0.1:3000"])
 
 # in .env file:
     # client_id
@@ -52,7 +53,7 @@ def home():
 @app.route('/callback')
 def callback():
     sp_oauth.get_access_token(request.args.get('code'))
-    return redirect(url_for('get_playlist'))
+    return redirect('http://127.0.0.1:3000')
 
 
 @app.route('/get_playlist')
@@ -221,7 +222,7 @@ def api_listening_profile():
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('home'))
+    return redirect('http://127.0.0.1:3000')
 
 
 

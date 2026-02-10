@@ -22,7 +22,7 @@ interface PlaylistData {
   playlists: Playlist[];
 }
 
-const API_BASE = "http://localhost:5001";
+const API_BASE = "http://127.0.0.1:5001";
 
 export default function Home() {
   const [data, setData] = useState<PlaylistData | null>(null);
