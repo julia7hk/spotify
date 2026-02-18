@@ -41,6 +41,11 @@ npm run dev
         - artist
 
 
+3. personal music player
+    - studying music player
+        - use it for when im studying that makes the lyrics or words quieter and enhances just the musical melody and beat → VOCAL SUPPRESSION
+    - karaoke chorus player
+
 ---
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
