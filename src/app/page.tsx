@@ -43,9 +43,11 @@ export default function Home() {
 
         <TopArtists artists={data.topArtists} />
 
-        <TopTracks tracks={data.topTracks} />
+        <div className="grid grid-cols-2 gap-4">
+          <TopTracks tracks={data.topTracks} />
 
-        <RecentlyPlayed tracks={data.recentlyPlayed} />
+          <RecentlyPlayed tracks={data.recentlyPlayed} />
+        </div>
 
         <PlaylistGrid playlists={data.playlists} />
       </div>

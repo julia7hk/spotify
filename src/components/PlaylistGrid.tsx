@@ -60,7 +60,7 @@ export function PlaylistGrid({ playlists }: PlaylistGridProps) {
     <section className="mb-10">
       <h2 className="text-2xl font-bold mb-2">Your Playlists</h2>
       <p className="text-[#b3b3b3] mb-6">{playlists.length} playlists</p>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-6">
         {playlists.map((playlist) => (
           <PlaylistCard key={playlist.id} playlist={playlist} />
         ))}
