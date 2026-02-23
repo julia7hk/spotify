@@ -16,10 +16,10 @@ function TrackItem({ track, rank, showTimestamp }: TrackItemProps) {
       href={track.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center gap-4 px-4 py-3 hover:bg-[#282828] transition-colors"
+      className="group flex items-center gap-4 px-4 py-3 hover:bg-[#AED9E0] transition-colors"
     >
       {rank !== undefined && (
-        <span className="text-[#b3b3b3] text-sm w-8 text-right font-mono">
+        <span className="text-[#AED9E0] group-hover:text-[#5E6472] text-sm w-8 text-right font-mono transition-colors">
           {rank}
         </span>
       )}
@@ -33,9 +33,9 @@ function TrackItem({ track, rank, showTimestamp }: TrackItemProps) {
             className="object-cover rounded"
           />
         ) : (
-          <div className="w-full h-full bg-[#282828] rounded flex items-center justify-center">
+          <div className="w-full h-full bg-[#AED9E0] rounded flex items-center justify-center">
             <svg
-              className="w-5 h-5 text-[#b3b3b3]"
+              className="w-5 h-5 text-[#5E6472]"
               fill="currentColor"
               viewBox="0 0 24 24"
             >
@@ -45,15 +45,15 @@ function TrackItem({ track, rank, showTimestamp }: TrackItemProps) {
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-medium truncate">{track.name}</p>
-        <p className="text-sm text-[#b3b3b3] truncate">{track.artist}</p>
+        <p className="font-medium truncate group-hover:text-[#5E6472] transition-colors">{track.name}</p>
+        <p className="text-sm text-[#AED9E0] group-hover:text-[#5E6472] truncate transition-colors">{track.artist}</p>
       </div>
       {showTimestamp && playedAt ? (
-        <p className="text-xs text-[#b3b3b3] whitespace-nowrap">
+        <p className="text-xs text-[#AED9E0] group-hover:text-[#5E6472] whitespace-nowrap transition-colors">
           {getRelativeTime(playedAt)}
         </p>
       ) : (
-        <p className="text-sm text-[#b3b3b3] truncate hidden sm:block max-w-48">
+        <p className="text-sm text-[#AED9E0] group-hover:text-[#5E6472] truncate hidden sm:block max-w-48 transition-colors">
           {track.album}
         </p>
       )}
@@ -71,7 +71,7 @@ export function TopTracks({ tracks }: TopTracksProps) {
   return (
     <section className="mb-10">
       <h2 className="text-2xl font-bold mb-6">Top Tracks</h2>
-      <div className="bg-[#181818] rounded-xl overflow-hidden">
+      <div className="bg-[#6E7482] rounded-xl overflow-hidden">
         {tracks.map((track, index) => (
           <TrackItem key={track.id} track={track} rank={index + 1} />
         ))}
@@ -90,7 +90,7 @@ export function RecentlyPlayed({ tracks }: RecentlyPlayedProps) {
   return (
     <section className="mb-10">
       <h2 className="text-2xl font-bold mb-6">Recently Played</h2>
-      <div className="bg-[#181818] rounded-xl overflow-hidden">
+      <div className="bg-[#6E7482] rounded-xl overflow-hidden">
         {tracks.map((track) => (
           <TrackItem
             key={`${track.id}-${track.played_at}`}

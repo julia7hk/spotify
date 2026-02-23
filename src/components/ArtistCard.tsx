@@ -12,7 +12,7 @@ export function ArtistCard({ artist, rank }: ArtistCardProps) {
       href={artist.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex-shrink-0 w-40 bg-[#181818] hover:bg-[#282828] rounded-lg p-4 transition-all"
+      className="group flex-shrink-0 w-40 bg-[#6E7482] hover:bg-[#AED9E0] rounded-lg p-4 transition-all"
     >
       <div className="relative mb-3 aspect-square">
         {artist.image ? (
@@ -24,9 +24,9 @@ export function ArtistCard({ artist, rank }: ArtistCardProps) {
             className="object-cover rounded-full shadow-lg"
           />
         ) : (
-          <div className="w-full h-full bg-[#282828] rounded-full flex items-center justify-center">
+          <div className="w-full h-full bg-[#AED9E0] rounded-full flex items-center justify-center">
             <svg
-              className="w-12 h-12 text-[#b3b3b3]"
+              className="w-12 h-12 text-[#5E6472]"
               fill="currentColor"
               viewBox="0 0 24 24"
             >
@@ -35,10 +35,10 @@ export function ArtistCard({ artist, rank }: ArtistCardProps) {
           </div>
         )}
       </div>
-      <h3 className="font-semibold text-sm truncate text-center">
+      <h3 className="font-semibold text-sm truncate text-center group-hover:text-[#5E6472] transition-colors">
         {artist.name}
       </h3>
-      <p className="text-xs text-[#b3b3b3] text-center mt-1">
+      <p className="text-xs text-[#AED9E0] group-hover:text-[#5E6472] text-center mt-1 transition-colors">
         #{rank} · {artist.genres[0] || "Artist"}
       </p>
     </a>

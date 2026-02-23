@@ -11,7 +11,7 @@ function PlaylistCard({ playlist }: PlaylistCardProps) {
       href={playlist.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group bg-[#181818] hover:bg-[#282828] rounded-lg p-4 transition-all"
+      className="group bg-[#6E7482] hover:bg-[#AED9E0] rounded-lg p-4 transition-all"
     >
       <div className="relative mb-4 aspect-square">
         {playlist.image ? (
@@ -23,9 +23,9 @@ function PlaylistCard({ playlist }: PlaylistCardProps) {
             className="object-cover rounded-md shadow-lg"
           />
         ) : (
-          <div className="w-full h-full bg-[#282828] rounded-md flex items-center justify-center">
+          <div className="w-full h-full bg-[#AED9E0] rounded-md flex items-center justify-center">
             <svg
-              className="w-16 h-16 text-[#b3b3b3]"
+              className="w-16 h-16 text-[#5E6472]"
               fill="currentColor"
               viewBox="0 0 24 24"
             >
@@ -33,9 +33,9 @@ function PlaylistCard({ playlist }: PlaylistCardProps) {
             </svg>
           </div>
         )}
-        <button className="absolute bottom-2 right-2 w-12 h-12 bg-[#1DB954] rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all shadow-xl">
+        <button className="absolute bottom-2 right-2 w-12 h-12 bg-[#FFA69E] rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all shadow-xl">
           <svg
-            className="w-5 h-5 text-black ml-1"
+            className="w-5 h-5 text-[#5E6472] ml-1"
             fill="currentColor"
             viewBox="0 0 24 24"
           >
@@ -43,8 +43,8 @@ function PlaylistCard({ playlist }: PlaylistCardProps) {
           </svg>
         </button>
       </div>
-      <h3 className="font-semibold truncate mb-1">{playlist.name}</h3>
-      <p className="text-sm text-[#b3b3b3]">{playlist.tracks} tracks</p>
+      <h3 className="font-semibold truncate mb-1 group-hover:text-[#5E6472] transition-colors">{playlist.name}</h3>
+      <p className="text-sm text-[#AED9E0] group-hover:text-[#5E6472] transition-colors">{playlist.tracks} tracks</p>
     </a>
   );
 }
@@ -59,7 +59,7 @@ export function PlaylistGrid({ playlists }: PlaylistGridProps) {
   return (
     <section className="mb-10">
       <h2 className="text-2xl font-bold mb-2">Your Playlists</h2>
-      <p className="text-[#b3b3b3] mb-6">{playlists.length} playlists</p>
+      <p className="text-[#AED9E0] mb-6">{playlists.length} playlists</p>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-6">
         {playlists.map((playlist) => (
           <PlaylistCard key={playlist.id} playlist={playlist} />

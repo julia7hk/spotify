@@ -15,19 +15,19 @@ export function TopGenres({ genres }: TopGenresProps) {
           const percentage = (count / maxCount) * 100;
           return (
             <div key={genre} className="flex items-center gap-4">
-              <span className="text-sm text-[#b3b3b3] w-32 text-right truncate capitalize">
+              <span className="text-sm text-[#AED9E0] w-32 text-right truncate capitalize">
                 {genre}
               </span>
-              <div className="flex-1 h-8 bg-[#282828] rounded-full overflow-hidden">
+              <div className="flex-1 h-8 bg-[#6E7482] rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full flex items-center justify-end pr-3"
                   style={{
                     width: `${Math.max(percentage, 8)}%`,
-                    background: "linear-gradient(90deg, #1DB954, #1ed760)",
+                    background: "linear-gradient(90deg, #FFA69E, #B8F2E6)",
                     transitionDelay: `${index * 50}ms`,
                   }}
                 >
-                  <span className="text-xs font-bold text-black">{count}</span>
+                  <span className="text-xs font-bold text-[#5E6472]">{count}</span>
                 </div>
               </div>
             </div>

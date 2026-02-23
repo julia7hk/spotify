@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --background: #121212;
-  --foreground: #ffffff;
-  --spotify-green: #1DB954;
-  --spotify-green-hover: #1ed760;
-  --card-bg: #181818;
-  --card-hover: #282828;
-  --text-muted: #b3b3b3;
+  --background: #5E6472;
+  --foreground: #FFFEF8;
+  --primary: #FFA69E;
+  --primary-hover: #B8F2E6;
+  --card-bg: #6E7482;
+  --card-hover: #AED9E0;
+  --text-muted: #AED9E0;
 }
 
 @theme inline {
@@ -29,7 +29,7 @@ body {
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #535353 transparent;
+  scrollbar-color: #AED9E0 transparent;
 }
 
 *::-webkit-scrollbar {
@@ -41,6 +41,6 @@ body {
 }
 
 *::-webkit-scrollbar-thumb {
-  background-color: #535353;
+  background-color: #AED9E0;
   border-radius: 4px;
 }
