@@ -11,6 +11,11 @@ import {
   TopTracks,
   RecentlyPlayed,
   PlaylistGrid,
+  AudioProfile,
+  MoodChart,
+  Recommendations,
+  NewReleases,
+  ListeningStatsSection,
 } from "@/components";
 
 export default function Home() {
@@ -37,17 +42,34 @@ export default function Home() {
           <StatsOverview listeningProfile={data.listeningProfile} />
         )}
 
+        {data.moodAnalysis && <MoodChart moodAnalysis={data.moodAnalysis} />}
+
+        {data.audioFeatures && (
+          <AudioProfile audioFeatures={data.audioFeatures} />
+        )}
+
         {data.listeningProfile && (
           <TopGenres genres={data.listeningProfile.top_genres} />
         )}
 
         <TopArtists artists={data.topArtists} />
 
-        <div className="grid grid-cols-2 gap-4">
-          <TopTracks tracks={data.topTracks} />
+        {data.recommendations.length > 0 && (
+          <Recommendations recommendations={data.recommendations} />
+        )}
 
+        {data.listeningStats && (
+          <ListeningStatsSection stats={data.listeningStats} />
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <TopTracks tracks={data.topTracks} />
           <RecentlyPlayed tracks={data.recentlyPlayed} />
         </div>
+
+        {data.newReleases.length > 0 && (
+          <NewReleases releases={data.newReleases} />
+        )}
 
         <PlaylistGrid playlists={data.playlists} />
       </div>
