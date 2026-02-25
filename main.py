@@ -193,15 +193,22 @@ def api_listening_profile():
     tracks = []
     for t in top_tracks['items']:
         tracks.append({
+            'id': t['id'],
             'name': t['name'],
+            'artist': t['artists'][0]['name'],
             'popularity': t['popularity'],
             'duration_ms': t['duration_ms'],
             'explicit': t['explicit'],
-            'release_year': t['album']['release_date'][:4]
+            'release_year': t['album']['release_date'][:4],
+            'image': t['album']['images'][0]['url'] if t['album']['images'] else None,
+            'url': t['external_urls']['spotify']
         })
 
     avg_popularity = sum(t['popularity'] for t in tracks) / len(tracks)
     avg_duration = sum(t['duration_ms'] for t in tracks) / len(tracks)
+
+    # Sort tracks by popularity for most/least popular
+    sorted_by_popularity = sorted(tracks, key=lambda x: x['popularity'], reverse=True)
 
     return jsonify({
         'top_genres': sorted(
@@ -215,7 +222,15 @@ def api_listening_profile():
             sum(1 for t in tracks if t['explicit']) / len(tracks),
             2
         ),
-        'release_years': [t['release_year'] for t in tracks]
+        'release_years': [t['release_year'] for t in tracks],
+        'tracks_by_popularity': [{
+            'id': t['id'],
+            'name': t['name'],
+            'artist': t['artist'],
+            'popularity': t['popularity'],
+            'image': t['image'],
+            'url': t['url']
+        } for t in sorted_by_popularity]
     })
 
 

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ListeningProfile } from "@/types/spotify";
 import { formatDuration } from "@/lib/utils";
 
@@ -11,7 +12,10 @@ export function StatsOverview({ listeningProfile }: StatsOverviewProps) {
   return (
     <section className="mb-10">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-[#6E7482] rounded-xl p-6">
+        <Link
+          href="/popularity"
+          className="bg-[#6E7482] hover:bg-[#7E8492] rounded-xl p-6 transition-colors cursor-pointer"
+        >
           <p className="text-[#AED9E0] text-sm mb-1">Avg. Popularity</p>
           <p className="text-3xl font-bold">
             {listeningProfile.avg_popularity}
@@ -23,7 +27,7 @@ export function StatsOverview({ listeningProfile }: StatsOverviewProps) {
               style={{ width: `${listeningProfile.avg_popularity}%` }}
             />
           </div>
-        </div>
+        </Link>
 
         <div className="bg-[#6E7482] rounded-xl p-6">
           <p className="text-[#AED9E0] text-sm mb-1">Avg. Track Length</p>

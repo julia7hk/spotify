@@ -41,12 +41,22 @@ export interface RecentTrack {
   image: string | null;
 }
 
+export interface PopularityTrack {
+  id: string;
+  name: string;
+  artist: string;
+  popularity: number;
+  image: string | null;
+  url: string;
+}
+
 export interface ListeningProfile {
   top_genres: [string, number][];
   avg_popularity: number;
   avg_duration_min: number;
   explicit_ratio: number;
   release_years: string[];
+  tracks_by_popularity: PopularityTrack[];
 }
 
 export interface AudioFeatures {
