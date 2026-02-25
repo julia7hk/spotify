@@ -155,6 +155,65 @@ export default function PopularityPage() {
             </div>
           </section>
         </div>
+
+        <section className="mt-12">
+          <h2 className="text-2xl font-bold mb-4">All Tracks</h2>
+          <p className="text-[#AED9E0] text-sm mb-6">
+            All {tracks.length} tracks used in calculating your average popularity
+          </p>
+          <div className="bg-[#6E7482] rounded-xl overflow-hidden">
+            <div className="grid grid-cols-[auto_1fr_auto] gap-4 px-4 py-3 border-b border-[#494e5a] text-[#AED9E0] text-sm font-medium">
+              <span className="w-8 text-right">#</span>
+              <span>Track</span>
+              <span className="w-20 text-right">Popularity</span>
+            </div>
+            {tracks.map((track, idx) => (
+              <a
+                key={track.id}
+                href={track.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="grid grid-cols-[auto_1fr_auto] gap-4 px-4 py-3 hover:bg-[#7E8492] transition-colors items-center"
+              >
+                <span className="text-[#AED9E0] text-sm w-8 text-right font-mono">
+                  {idx + 1}
+                </span>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="relative w-10 h-10 flex-shrink-0">
+                    {track.image ? (
+                      <Image
+                        src={track.image}
+                        alt={track.name}
+                        fill
+                        sizes="40px"
+                        className="object-cover rounded"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-[#494e5a] rounded flex items-center justify-center">
+                        <svg
+                          className="w-5 h-5 text-[#AED9E0]"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{track.name}</p>
+                    <p className="text-sm text-[#AED9E0] truncate">{track.artist}</p>
+                  </div>
+                </div>
+                <div className="w-20 text-right">
+                  <span className="inline-flex items-center justify-center w-12 h-8 bg-[#494e5a] rounded-full font-bold text-sm">
+                    {track.popularity}
+                  </span>
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
       </div>
     </div>
   );
