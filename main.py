@@ -191,7 +191,7 @@ def api_listening_profile():
 
     # ---- Track metadata ----
     tracks = []
-    for t in top_tracks['items']:
+    for idx, t in enumerate(top_tracks['items']):
         tracks.append({
             'id': t['id'],
             'name': t['name'],
@@ -201,7 +201,8 @@ def api_listening_profile():
             'explicit': t['explicit'],
             'release_year': t['album']['release_date'][:4],
             'image': t['album']['images'][0]['url'] if t['album']['images'] else None,
-            'url': t['external_urls']['spotify']
+            'url': t['external_urls']['spotify'],
+            'top_rank': idx + 1
         })
 
     avg_popularity = sum(t['popularity'] for t in tracks) / len(tracks)
@@ -229,7 +230,8 @@ def api_listening_profile():
             'artist': t['artist'],
             'popularity': t['popularity'],
             'image': t['image'],
-            'url': t['url']
+            'url': t['url'],
+            'top_rank': t['top_rank']
         } for t in sorted_by_popularity]
     })
 

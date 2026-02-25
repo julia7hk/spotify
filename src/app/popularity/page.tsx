@@ -50,10 +50,15 @@ function TrackCard({ track, rank }: { track: PopularityTrack; rank: number }) {
   );
 }
 
+type SortField = "popularity" | "top_rank";
+type SortDirection = "asc" | "desc";
+
 export default function PopularityPage() {
   const [profile, setProfile] = useState<ListeningProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<SortField>("popularity");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   useEffect(() => {
     async function fetchData() {
@@ -92,6 +97,20 @@ export default function PopularityPage() {
   const mostPopular = tracks.slice(0, 5);
   const leastPopular = [...tracks].reverse().slice(0, 5);
 
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection(field === "popularity" ? "desc" : "asc");
+    }
+  };
+
+  const sortedTracks = [...tracks].sort((a, b) => {
+    const multiplier = sortDirection === "asc" ? 1 : -1;
+    return (a[sortField] - b[sortField]) * multiplier;
+  });
+
   return (
     <div className="min-h-screen p-8">
       <div className="max-w-4xl mx-auto">
@@ -117,7 +136,7 @@ export default function PopularityPage() {
 
         <h1 className="text-4xl font-bold mb-2">Popularity Analysis</h1>
         <p className="text-[#AED9E0] mb-8">
-          Based on your top {tracks.length} tracks
+          Based on your top {tracks.length} tracks from the last 6 months
         </p>
 
         <div className="bg-[#6E7482] rounded-xl p-8 mb-10 text-center">
@@ -162,18 +181,47 @@ export default function PopularityPage() {
             All {tracks.length} tracks used in calculating your average popularity
           </p>
           <div className="bg-[#6E7482] rounded-xl overflow-hidden">
-            <div className="grid grid-cols-[auto_1fr_auto] gap-4 px-4 py-3 border-b border-[#494e5a] text-[#AED9E0] text-sm font-medium">
+            <div className="grid grid-cols-[auto_1fr_auto_auto] gap-4 px-4 py-3 border-b border-[#494e5a] text-[#AED9E0] text-sm font-medium">
               <span className="w-8 text-right">#</span>
               <span>Track</span>
-              <span className="w-20 text-right">Popularity</span>
+              <button
+                onClick={() => toggleSort("top_rank")}
+                className="w-20 text-center hover:text-white transition-colors flex items-center justify-center gap-1"
+              >
+                Top Rank
+                {sortField === "top_rank" && (
+                  <svg
+                    className={`w-3 h-3 transition-transform ${sortDirection === "desc" ? "rotate-180" : ""}`}
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M7 14l5-5 5 5H7z" />
+                  </svg>
+                )}
+              </button>
+              <button
+                onClick={() => toggleSort("popularity")}
+                className="w-20 text-right hover:text-white transition-colors flex items-center justify-end gap-1"
+              >
+                Popularity
+                {sortField === "popularity" && (
+                  <svg
+                    className={`w-3 h-3 transition-transform ${sortDirection === "desc" ? "rotate-180" : ""}`}
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M7 14l5-5 5 5H7z" />
+                  </svg>
+                )}
+              </button>
             </div>
-            {tracks.map((track, idx) => (
+            {sortedTracks.map((track, idx) => (
               <a
                 key={track.id}
                 href={track.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="grid grid-cols-[auto_1fr_auto] gap-4 px-4 py-3 hover:bg-[#7E8492] transition-colors items-center"
+                className="grid grid-cols-[auto_1fr_auto_auto] gap-4 px-4 py-3 hover:bg-[#7E8492] transition-colors items-center"
               >
                 <span className="text-[#AED9E0] text-sm w-8 text-right font-mono">
                   {idx + 1}
@@ -204,6 +252,9 @@ export default function PopularityPage() {
                     <p className="font-medium truncate">{track.name}</p>
                     <p className="text-sm text-[#AED9E0] truncate">{track.artist}</p>
                   </div>
+                </div>
+                <div className="w-20 text-center">
+                  <span className="text-[#AED9E0] font-mono">{`#${track.top_rank}`}</span>
                 </div>
                 <div className="w-20 text-right">
                   <span className="inline-flex items-center justify-center w-12 h-8 bg-[#494e5a] rounded-full font-bold text-sm">

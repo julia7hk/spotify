@@ -48,6 +48,7 @@ export interface PopularityTrack {
   popularity: number;
   image: string | null;
   url: string;
+  top_rank: number;
 }
 
 export interface ListeningProfile {
