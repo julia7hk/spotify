@@ -6,9 +6,6 @@ import type {
   RecentTrack,
   ListeningProfile,
   DashboardData,
-  AudioFeatures,
-  MoodAnalysis,
-  Recommendation,
   NewRelease,
   ListeningStats,
 } from "@/types/spotify";
@@ -65,21 +62,6 @@ export async function getListeningProfile(): Promise<ListeningProfile> {
   return fetchWithCredentials<ListeningProfile>("/api/listening-profile");
 }
 
-export async function getAudioFeatures(): Promise<AudioFeatures> {
-  return fetchWithCredentials<AudioFeatures>("/api/audio-features");
-}
-
-export async function getMoodAnalysis(): Promise<MoodAnalysis> {
-  return fetchWithCredentials<MoodAnalysis>("/api/mood-analysis");
-}
-
-export async function getRecommendations(): Promise<Recommendation[]> {
-  const data = await fetchWithCredentials<{ recommendations: Recommendation[] }>(
-    "/api/recommendations"
-  );
-  return data.recommendations;
-}
-
 export async function getNewReleases(): Promise<NewRelease[]> {
   const data = await fetchWithCredentials<{ albums: NewRelease[] }>(
     "/api/new-releases"
@@ -104,9 +86,6 @@ export async function fetchDashboardData(): Promise<DashboardData | null> {
     topTracksResult,
     recentResult,
     listeningResult,
-    audioFeaturesResult,
-    moodResult,
-    recommendationsResult,
     newReleasesResult,
     listeningStatsResult,
   ] = await Promise.allSettled([
@@ -115,9 +94,6 @@ export async function fetchDashboardData(): Promise<DashboardData | null> {
     getTopTracks(),
     getRecentlyPlayed(),
     getListeningProfile(),
-    getAudioFeatures(),
-    getMoodAnalysis(),
-    getRecommendations(),
     getNewReleases(),
     getListeningStats(),
   ]);
@@ -134,12 +110,6 @@ export async function fetchDashboardData(): Promise<DashboardData | null> {
       recentResult.status === "fulfilled" ? recentResult.value : [],
     listeningProfile:
       listeningResult.status === "fulfilled" ? listeningResult.value : null,
-    audioFeatures:
-      audioFeaturesResult.status === "fulfilled" ? audioFeaturesResult.value : null,
-    moodAnalysis:
-      moodResult.status === "fulfilled" ? moodResult.value : null,
-    recommendations:
-      recommendationsResult.status === "fulfilled" ? recommendationsResult.value : [],
     newReleases:
       newReleasesResult.status === "fulfilled" ? newReleasesResult.value : [],
     listeningStats:

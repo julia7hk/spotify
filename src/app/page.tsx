@@ -11,9 +11,6 @@ import {
   TopTracks,
   RecentlyPlayed,
   PlaylistGrid,
-  AudioProfile,
-  MoodChart,
-  Recommendations,
   NewReleases,
   ListeningStatsSection,
 } from "@/components";
@@ -42,21 +39,11 @@ export default function Home() {
           <StatsOverview listeningProfile={data.listeningProfile} />
         )}
 
-        {data.moodAnalysis && <MoodChart moodAnalysis={data.moodAnalysis} />}
-
-        {data.audioFeatures && (
-          <AudioProfile audioFeatures={data.audioFeatures} />
-        )}
-
         {data.listeningProfile && (
           <TopGenres genres={data.listeningProfile.top_genres} />
         )}
 
         <TopArtists artists={data.topArtists} />
-
-        {data.recommendations.length > 0 && (
-          <Recommendations recommendations={data.recommendations} />
-        )}
 
         {data.listeningStats && (
           <ListeningStatsSection stats={data.listeningStats} />
