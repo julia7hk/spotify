@@ -43,27 +43,41 @@ export function MoodChart({ moodAnalysis }: MoodChartProps) {
           </p>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           {moods.map(([mood, percentage]) => (
-            <div key={mood} className="flex items-center gap-3">
-              <span className="w-24 text-sm text-[#AED9E0] capitalize">{mood}</span>
-              <div className="flex-1 h-6 bg-[#5E6472] rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full flex items-center justify-end pr-2 transition-all duration-500"
-                  style={{
-                    width: `${Math.max(percentage, 5)}%`,
-                    backgroundColor: moodColors[mood] || "#AED9E0",
-                  }}
-                >
-                  {percentage >= 10 && (
-                    <span className="text-xs font-bold text-[#5E6472]">
-                      {percentage}%
-                    </span>
-                  )}
+            <div key={mood}>
+              <div className="flex items-center gap-3">
+                <span className="w-24 text-sm text-[#AED9E0] capitalize">{mood}</span>
+                <div className="flex-1 h-6 bg-[#5E6472] rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full flex items-center justify-end pr-2 transition-all duration-500"
+                    style={{
+                      width: `${Math.max(percentage, 5)}%`,
+                      backgroundColor: moodColors[mood] || "#AED9E0",
+                    }}
+                  >
+                    {percentage >= 10 && (
+                      <span className="text-xs font-bold text-[#5E6472]">
+                        {percentage}%
+                      </span>
+                    )}
+                  </div>
                 </div>
+                {percentage < 10 && (
+                  <span className="text-xs text-[#AED9E0] w-10">{percentage}%</span>
+                )}
               </div>
-              {percentage < 10 && (
-                <span className="text-xs text-[#AED9E0] w-10">{percentage}%</span>
+              {moodAnalysis.genre_examples?.[mood]?.length > 0 && (
+                <div className="ml-28 mt-1 flex flex-wrap gap-1">
+                  {moodAnalysis.genre_examples[mood].map((genre) => (
+                    <span
+                      key={genre}
+                      className="text-xs bg-[#5E6472] px-2 py-0.5 rounded-full text-[#AED9E0]"
+                    >
+                      {genre}
+                    </span>
+                  ))}
+                </div>
               )}
             </div>
           ))}

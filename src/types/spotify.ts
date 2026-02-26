@@ -87,6 +87,39 @@ export interface ListeningStats {
   };
 }
 
+export interface DiscoveredTrack {
+  id: string;
+  name: string;
+  preview_url: string | null;
+  url: string;
+  image: string | null;
+}
+
+export interface DiscoveredArtist {
+  id: string;
+  name: string;
+  genres: string[];
+  popularity: number;
+  url: string;
+  image: string | null;
+  similar_to: string;
+  top_tracks: DiscoveredTrack[];
+}
+
+export interface MoodAnalysis {
+  dominant_mood: string;
+  mood_breakdown: Record<string, number>;
+  mood_counts: Record<string, number>;
+  genre_examples: Record<string, string[]>;
+}
+
+export interface GenreProfile {
+  genres: { name: string; count: number }[];
+  unique_genres: number;
+  diversity_score: number;
+  top_genre: string | null;
+}
+
 export interface DashboardData {
   profile: UserProfile;
   playlists: Playlist[];
@@ -96,4 +129,7 @@ export interface DashboardData {
   listeningProfile: ListeningProfile | null;
   newReleases: NewRelease[];
   listeningStats: ListeningStats | null;
+  discoverArtists: DiscoveredArtist[];
+  moodAnalysis: MoodAnalysis | null;
+  genreProfile: GenreProfile | null;
 }

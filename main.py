@@ -37,6 +37,25 @@ sp_oauth = SpotifyOAuth(
 sp = Spotify(auth_manager=sp_oauth)
 
 
+# Genre-to-mood mapping for mood analysis
+GENRE_MOOD_MAPPING = {
+    'happy': ['party', 'dance pop', 'disco', 'funk', 'happy', 'tropical', 'summer', 'bubblegum'],
+    'sad': ['emo', 'melancholy', 'sad', 'indie', 'singer-songwriter', 'ballad', 'slowcore'],
+    'energetic': ['edm', 'techno', 'punk', 'metal', 'rock', 'drum and bass', 'hardstyle', 'hardcore'],
+    'chill': ['ambient', 'lo-fi', 'lofi', 'acoustic', 'mellow', 'chill', 'downtempo', 'jazz', 'bossa'],
+    'angry': ['death metal', 'thrash', 'industrial', 'grindcore', 'black metal', 'metalcore', 'rage']
+}
+
+
+def classify_genre_mood(genre: str) -> str | None:
+    """Classify a genre into a mood category based on keyword matching"""
+    genre_lower = genre.lower()
+    for mood, keywords in GENRE_MOOD_MAPPING.items():
+        for keyword in keywords:
+            if keyword in genre_lower:
+                return mood
+    return None
+
 
 # root
 @app.route('/')
@@ -283,30 +302,22 @@ def api_audio_features():
 
 @app.route('/api/mood-analysis')
 def api_mood_analysis():
-    """Analyze the emotional characteristics of user's music taste"""
+    """Analyze the emotional characteristics of user's music taste based on genres"""
     if not sp_oauth.validate_token(cache_handler.get_cached_token()):
         return jsonify({'authenticated': False}), 401
 
-    top_tracks = sp.current_user_top_tracks(limit=50, time_range='medium_term')
-    track_ids = [t['id'] for t in top_tracks['items']]
-    audio_features = sp.audio_features(track_ids)
+    top_artists = sp.current_user_top_artists(limit=50, time_range='medium_term')
 
     moods = {'happy': 0, 'sad': 0, 'energetic': 0, 'chill': 0, 'angry': 0}
+    genre_examples = {'happy': [], 'sad': [], 'energetic': [], 'chill': [], 'angry': []}
 
-    for af in audio_features:
-        if not af:
-            continue
-        # Classify based on valence and energy
-        if af['valence'] > 0.6 and af['energy'] > 0.6:
-            moods['happy'] += 1
-        elif af['valence'] < 0.4 and af['energy'] < 0.4:
-            moods['sad'] += 1
-        elif af['energy'] > 0.7:
-            moods['energetic'] += 1
-        elif af['energy'] < 0.4 and af['acousticness'] > 0.5:
-            moods['chill'] += 1
-        elif af['energy'] > 0.6 and af['valence'] < 0.4:
-            moods['angry'] += 1
+    for artist in top_artists['items']:
+        for genre in artist['genres']:
+            mood = classify_genre_mood(genre)
+            if mood:
+                moods[mood] += 1
+                if genre not in genre_examples[mood] and len(genre_examples[mood]) < 3:
+                    genre_examples[mood].append(genre)
 
     total = sum(moods.values()) or 1
     mood_percentages = {k: round(v / total * 100, 1) for k, v in moods.items()}
@@ -316,7 +327,8 @@ def api_mood_analysis():
         'authenticated': True,
         'dominant_mood': dominant_mood,
         'mood_breakdown': mood_percentages,
-        'mood_counts': moods
+        'mood_counts': moods,
+        'genre_examples': genre_examples
     })
 
 
@@ -349,6 +361,92 @@ def api_recommendations():
             'url': track['external_urls']['spotify'],
             'image': track['album']['images'][0]['url'] if track['album']['images'] else None
         } for track in recommendations['tracks']]
+    })
+
+
+@app.route('/api/discover-artists')
+def api_discover_artists():
+    """Discover new artists based on user's top artists using related artists"""
+    if not sp_oauth.validate_token(cache_handler.get_cached_token()):
+        return jsonify({'authenticated': False}), 401
+
+    # Get user's top 5 artists as seeds
+    top_artists = sp.current_user_top_artists(limit=5, time_range='medium_term')
+    known_artist_ids = {a['id'] for a in top_artists['items']}
+
+    discovered_artists = []
+    seen_ids = set(known_artist_ids)
+
+    for seed_artist in top_artists['items']:
+        if len(discovered_artists) >= 10:
+            break
+
+        related = sp.artist_related_artists(seed_artist['id'])
+
+        for artist in related['artists']:
+            if artist['id'] in seen_ids:
+                continue
+            if len(discovered_artists) >= 10:
+                break
+
+            seen_ids.add(artist['id'])
+
+            # Get top 3 tracks for this artist
+            top_tracks = sp.artist_top_tracks(artist['id'])
+            tracks = [{
+                'id': t['id'],
+                'name': t['name'],
+                'preview_url': t['preview_url'],
+                'url': t['external_urls']['spotify'],
+                'image': t['album']['images'][0]['url'] if t['album']['images'] else None
+            } for t in top_tracks['tracks'][:3]]
+
+            discovered_artists.append({
+                'id': artist['id'],
+                'name': artist['name'],
+                'genres': artist['genres'][:3],
+                'popularity': artist['popularity'],
+                'url': artist['external_urls']['spotify'],
+                'image': artist['images'][0]['url'] if artist['images'] else None,
+                'similar_to': seed_artist['name'],
+                'top_tracks': tracks
+            })
+
+    return jsonify({
+        'authenticated': True,
+        'discovered_artists': discovered_artists
+    })
+
+
+@app.route('/api/genre-profile')
+def api_genre_profile():
+    """Get user's genre distribution profile"""
+    if not sp_oauth.validate_token(cache_handler.get_cached_token()):
+        return jsonify({'authenticated': False}), 401
+
+    top_artists = sp.current_user_top_artists(limit=50, time_range='medium_term')
+
+    # Count genres
+    genre_count = {}
+    for artist in top_artists['items']:
+        for genre in artist['genres']:
+            genre_count[genre] = genre_count.get(genre, 0) + 1
+
+    # Sort by count
+    sorted_genres = sorted(genre_count.items(), key=lambda x: x[1], reverse=True)
+    top_15_genres = sorted_genres[:15]
+
+    # Calculate diversity score (unique genres / total genre mentions)
+    total_mentions = sum(genre_count.values())
+    unique_genres = len(genre_count)
+    diversity_score = round((unique_genres / total_mentions * 100), 1) if total_mentions > 0 else 0
+
+    return jsonify({
+        'authenticated': True,
+        'genres': [{'name': g[0], 'count': g[1]} for g in top_15_genres],
+        'unique_genres': unique_genres,
+        'diversity_score': diversity_score,
+        'top_genre': top_15_genres[0][0] if top_15_genres else None
     })
 
 

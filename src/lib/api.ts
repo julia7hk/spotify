@@ -8,6 +8,9 @@ import type {
   DashboardData,
   NewRelease,
   ListeningStats,
+  DiscoveredArtist,
+  MoodAnalysis,
+  GenreProfile,
 } from "@/types/spotify";
 
 const API_BASE = "";
@@ -76,6 +79,21 @@ export async function getListeningStats(): Promise<ListeningStats> {
   return data.stats;
 }
 
+export async function getDiscoverArtists(): Promise<DiscoveredArtist[]> {
+  const data = await fetchWithCredentials<{ discovered_artists: DiscoveredArtist[] }>(
+    "/api/discover-artists"
+  );
+  return data.discovered_artists;
+}
+
+export async function getMoodAnalysis(): Promise<MoodAnalysis> {
+  return fetchWithCredentials<MoodAnalysis>("/api/mood-analysis");
+}
+
+export async function getGenreProfile(): Promise<GenreProfile> {
+  return fetchWithCredentials<GenreProfile>("/api/genre-profile");
+}
+
 export async function fetchDashboardData(): Promise<DashboardData | null> {
   const profile = await getCurrentUser();
   if (!profile) return null;
@@ -88,6 +106,9 @@ export async function fetchDashboardData(): Promise<DashboardData | null> {
     listeningResult,
     newReleasesResult,
     listeningStatsResult,
+    discoverArtistsResult,
+    moodAnalysisResult,
+    genreProfileResult,
   ] = await Promise.allSettled([
     getPlaylists(),
     getTopArtists(),
@@ -96,6 +117,9 @@ export async function fetchDashboardData(): Promise<DashboardData | null> {
     getListeningProfile(),
     getNewReleases(),
     getListeningStats(),
+    getDiscoverArtists(),
+    getMoodAnalysis(),
+    getGenreProfile(),
   ]);
 
   return {
@@ -114,5 +138,11 @@ export async function fetchDashboardData(): Promise<DashboardData | null> {
       newReleasesResult.status === "fulfilled" ? newReleasesResult.value : [],
     listeningStats:
       listeningStatsResult.status === "fulfilled" ? listeningStatsResult.value : null,
+    discoverArtists:
+      discoverArtistsResult.status === "fulfilled" ? discoverArtistsResult.value : [],
+    moodAnalysis:
+      moodAnalysisResult.status === "fulfilled" ? moodAnalysisResult.value : null,
+    genreProfile:
+      genreProfileResult.status === "fulfilled" ? genreProfileResult.value : null,
   };
 }
