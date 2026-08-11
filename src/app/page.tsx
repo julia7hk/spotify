@@ -11,9 +11,7 @@ import {
   TopTracks,
   RecentlyPlayed,
   PlaylistGrid,
-  NewReleases,
   ListeningStatsSection,
-  DiscoverArtists,
   GenreProfile,
   MoodChart,
 } from "@/components";
@@ -48,10 +46,6 @@ export default function Home() {
 
         <TopArtists artists={data.topArtists} />
 
-        {data.discoverArtists.length > 0 && (
-          <DiscoverArtists artists={data.discoverArtists} />
-        )}
-
         {data.moodAnalysis && (
           <MoodChart moodAnalysis={data.moodAnalysis} />
         )}
@@ -68,10 +62,6 @@ export default function Home() {
           <TopTracks tracks={data.topTracks} />
           <RecentlyPlayed tracks={data.recentlyPlayed} />
         </div>
-
-        {data.newReleases.length > 0 && (
-          <NewReleases releases={data.newReleases} />
-        )}
 
         <PlaylistGrid playlists={data.playlists} />
       </div>

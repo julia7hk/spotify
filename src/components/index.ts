@@ -7,8 +7,6 @@ export { TopGenres } from "./TopGenres";
 export { ArtistCard, TopArtists } from "./ArtistCard";
 export { TopTracks, RecentlyPlayed } from "./TrackList";
 export { PlaylistGrid } from "./PlaylistGrid";
-export { NewReleases } from "./NewReleases";
 export { ListeningStatsSection } from "./ListeningStats";
-export { DiscoverArtists } from "./DiscoverArtists";
 export { GenreProfile } from "./GenreProfile";
 export { MoodChart } from "./MoodChart";

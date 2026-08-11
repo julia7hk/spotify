@@ -6,9 +6,7 @@ import type {
   RecentTrack,
   ListeningProfile,
   DashboardData,
-  NewRelease,
   ListeningStats,
-  DiscoveredArtist,
   MoodAnalysis,
   GenreProfile,
 } from "@/types/spotify";
@@ -65,25 +63,11 @@ export async function getListeningProfile(): Promise<ListeningProfile> {
   return fetchWithCredentials<ListeningProfile>("/api/listening-profile");
 }
 
-export async function getNewReleases(): Promise<NewRelease[]> {
-  const data = await fetchWithCredentials<{ albums: NewRelease[] }>(
-    "/api/new-releases"
-  );
-  return data.albums;
-}
-
 export async function getListeningStats(): Promise<ListeningStats> {
   const data = await fetchWithCredentials<{ stats: ListeningStats }>(
     "/api/listening-stats"
   );
   return data.stats;
-}
-
-export async function getDiscoverArtists(): Promise<DiscoveredArtist[]> {
-  const data = await fetchWithCredentials<{ discovered_artists: DiscoveredArtist[] }>(
-    "/api/discover-artists"
-  );
-  return data.discovered_artists;
 }
 
 export async function getMoodAnalysis(): Promise<MoodAnalysis> {
@@ -104,9 +88,7 @@ export async function fetchDashboardData(): Promise<DashboardData | null> {
     topTracksResult,
     recentResult,
     listeningResult,
-    newReleasesResult,
     listeningStatsResult,
-    discoverArtistsResult,
     moodAnalysisResult,
     genreProfileResult,
   ] = await Promise.allSettled([
@@ -115,9 +97,7 @@ export async function fetchDashboardData(): Promise<DashboardData | null> {
     getTopTracks(),
     getRecentlyPlayed(),
     getListeningProfile(),
-    getNewReleases(),
     getListeningStats(),
-    getDiscoverArtists(),
     getMoodAnalysis(),
     getGenreProfile(),
   ]);
@@ -134,12 +114,8 @@ export async function fetchDashboardData(): Promise<DashboardData | null> {
       recentResult.status === "fulfilled" ? recentResult.value : [],
     listeningProfile:
       listeningResult.status === "fulfilled" ? listeningResult.value : null,
-    newReleases:
-      newReleasesResult.status === "fulfilled" ? newReleasesResult.value : [],
     listeningStats:
       listeningStatsResult.status === "fulfilled" ? listeningStatsResult.value : null,
-    discoverArtists:
-      discoverArtistsResult.status === "fulfilled" ? discoverArtistsResult.value : [],
     moodAnalysis:
       moodAnalysisResult.status === "fulfilled" ? moodAnalysisResult.value : null,
     genreProfile:

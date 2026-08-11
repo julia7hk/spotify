@@ -70,40 +70,11 @@ export interface SavedTrack {
   image: string | null;
 }
 
-export interface NewRelease {
-  id: string;
-  name: string;
-  artist: string;
-  release_date: string;
-  total_tracks: number;
-  url: string;
-  image: string | null;
-}
-
 export interface ListeningStats {
   [timeRange: string]: {
     top_artists: string[];
     top_tracks: { name: string; artist: string }[];
   };
-}
-
-export interface DiscoveredTrack {
-  id: string;
-  name: string;
-  preview_url: string | null;
-  url: string;
-  image: string | null;
-}
-
-export interface DiscoveredArtist {
-  id: string;
-  name: string;
-  genres: string[];
-  popularity: number;
-  url: string;
-  image: string | null;
-  similar_to: string;
-  top_tracks: DiscoveredTrack[];
 }
 
 export interface MoodAnalysis {
@@ -127,9 +98,7 @@ export interface DashboardData {
   topTracks: TopTrack[];
   recentlyPlayed: RecentTrack[];
   listeningProfile: ListeningProfile | null;
-  newReleases: NewRelease[];
   listeningStats: ListeningStats | null;
-  discoverArtists: DiscoveredArtist[];
   moodAnalysis: MoodAnalysis | null;
   genreProfile: GenreProfile | null;
 }
