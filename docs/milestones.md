@@ -136,6 +136,33 @@ Turn a good result set into something the user actually listens to in Spotify.
 - [ ] Mobile-responsive audit
 - [ ] Re-sync scheduling — pull new liked songs + re-tag on a cadence
 
+## Milestone 10: Hosting & Multi-User Deployment (music.julia7hk.com)
+
+**Goal:** host the dashboard at **`music.julia7hk.com`** so the owner + up to 4 friends
+use it **self-serve from their own devices, any time** — no more logging in on the owner's
+computer. Each person logs in with **their own Spotify account** and sees **their own stats**
+(auth is per-browser session, so the app is already multi-user). Owner + 4 friends = 5, which
+exactly fits the dev-mode cap.
+
+**Hard reality — the 5-user cap is permanent and hosting-independent.** It's a property of the
+Spotify app registration (Development Mode), not of where the code runs. No hosting setup lifts
+it; only Spotify's Extended Quota Mode does, which needs a registered business + ~250k MAU (not
+viable — see Backlog). So this app is *always* ≤5 whitelisted accounts.
+
+**Three requirements to make it work for all 5 (all on the Premium app-owner's side):**
+- [ ] Every one of the 5 Spotify **login emails** added to the app's **User Management** allowlist by the Premium owner (Crystal). Anyone not listed → 403.
+- [ ] Redirect URI added: **`https://music.julia7hk.com/callback`** (HTTPS required for a real domain), registered by the owner in the app settings.
+- [ ] Owner (Crystal) keeps **active Premium** — app dies for everyone if it lapses.
+
+**Deployment plan — mirror FalconUp** (Oracle Cloud VM `oc40` + Docker Compose + nginx + Cloudflare TLS):
+- [x] Migrate backend deps to **`uv`** (`pyproject.toml` + `uv.lock`, dropped `requirements.txt`) so the Dockerfile mirrors FalconUp's.
+- [x] `load_dotenv(override=True)` in `main.py` — `.env` is the source of truth (was being shadowed by stale exported `SPOTIFY_*` shell vars → wrong Client ID).
+- [ ] `Dockerfile` (Flask backend) + `Dockerfile` (Next.js frontend) + `compose.yaml` (nginx + backend + frontend), modeled on `falconup26/ops/`.
+- [ ] Add a **new server block** to the existing FalconUp nginx (`server_name music.julia7hk.com`) — don't run a second nginx (port 80 conflict). Route `/api/*`, `/callback`, `/logout` → Flask; `/` → Next.js.
+- [ ] Cloudflare DNS: add `music` subdomain → the same VM; TLS terminated at Cloudflare (nginx sees http:80, forwards `X-Forwarded-Proto https`).
+- [ ] Production config in `main.py`: redirect URI + `/callback` final redirect → `https://music.julia7hk.com`; replace hardcoded session secret (`'spotify-dashboard-dev-key'`) with an env secret; `SESSION_COOKIE_SECURE=True` + trust the forwarded proto.
+- [ ] (Optional) GitHub Actions CI to build/push images to `ghcr.io` like FalconUp.
+
 ## Concrete test cases (hold the engine to these)
 
 Real motivating vibes to validate M6 against once it exists:
