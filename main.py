@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)  # .env is the source of truth — beat any stale exported SPOTIFY_* shell vars
 
 from flask import Flask, request, redirect, session, url_for, jsonify
 from flask_cors import CORS
