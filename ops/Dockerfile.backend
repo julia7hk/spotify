@@ -1,0 +1,17 @@
+FROM python:3.13-slim
+
+# Install uv (same pattern as falconup26/ops/Dockerfile.backend)
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+WORKDIR /app
+
+# Install dependencies first (cached layer)
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
+
+# Copy application code
+COPY . .
+
+# Production WSGI server (NOT flask's debug server). Token lives in the client
+# session cookie, so multiple workers are safe (stateless server).
+CMD ["uv", "run", "gunicorn", "main:app", "--bind", "0.0.0.0:5001", "--workers", "2"]

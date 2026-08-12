@@ -9,4 +9,5 @@ dependencies = [
     "flask-cors>=6.0.2",
     "spotipy>=2.23.0",
     "python-dotenv>=1.2.2",
+    "gunicorn>=26.0.0",
 ]
