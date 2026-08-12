@@ -11,10 +11,21 @@ from spotipy.oauth2 import SpotifyOAuth
 from spotipy.cache_handler import FlaskSessionCacheHandler
 
 
+# Where the frontend lives: 127.0.0.1:3000 in local dev, the public URL in prod.
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://127.0.0.1:3000')
+
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'spotify-dashboard-dev-key'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'spotify-dashboard-dev-key')
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-CORS(app, supports_credentials=True, origins=["http://127.0.0.1:3000"])
+# Behind HTTPS (prod) mark the session cookie Secure; stays False for local http dev.
+app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', 'false').lower() == 'true'
+CORS(app, supports_credentials=True, origins=[FRONTEND_URL])
+
+# Behind nginx/Cloudflare (TLS terminated upstream), trust the forwarded scheme/host.
+# Enable ONLY behind the trusted proxy (never expose Flask directly with this on).
+if os.getenv('TRUST_PROXY', 'false').lower() == 'true':
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # in .env file:
     # client_id
@@ -72,7 +83,7 @@ def home():
 @app.route('/callback')
 def callback():
     sp_oauth.get_access_token(request.args.get('code'))
-    return redirect('http://127.0.0.1:3000')
+    return redirect(FRONTEND_URL)
 
 
 @app.route('/get_playlist')
@@ -393,9 +404,9 @@ def api_listening_stats():
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect('http://127.0.0.1:3000')
+    return redirect(FRONTEND_URL)
 
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    app.run(debug=os.getenv('FLASK_DEBUG', 'true').lower() == 'true', port=5001)

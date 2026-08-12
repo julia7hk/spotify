@@ -1,0 +1,16 @@
+FROM node:24-slim
+
+WORKDIR /app
+
+# Install dependencies first (cached layer)
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+# Copy application code and build
+COPY . .
+RUN npm run build
+
+# Next.js production server. Frontend calls the API via same-origin relative
+# paths (API_BASE="") — nginx routes /api, /callback, /logout to Flask, so the
+# next.config.ts rewrites (localhost) are never hit in prod.
+CMD ["npm", "start", "--", "-p", "3000"]

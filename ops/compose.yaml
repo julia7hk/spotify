@@ -1,0 +1,35 @@
+name: music-spotify
+
+# Two containers: Flask backend + Next.js frontend. No nginx here — this stack
+# reuses the EXISTING falconup nginx (which already owns :80 on the VM) via a
+# shared external docker network `edge`. See ops/DEPLOY.md.
+services:
+  backend:
+    container_name: music-backend
+    build:
+      context: ..
+      dockerfile: ops/Dockerfile.backend
+    image: music-backend
+    restart: always
+    env_file:
+      - ../.env
+    networks:
+      - edge
+
+  frontend:
+    container_name: music-frontend
+    build:
+      context: ..
+      dockerfile: ops/Dockerfile.frontend
+    image: music-frontend
+    restart: always
+    env_file:
+      - ../.env
+    networks:
+      - edge
+
+networks:
+  # Shared with the falconup nginx so it can reach music-backend / music-frontend
+  # by name. Create once on the VM:  docker network create edge
+  edge:
+    external: true
