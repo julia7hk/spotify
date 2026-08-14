@@ -161,7 +161,7 @@ viable — see Backlog). So this app is *always* ≤5 whitelisted accounts.
 - [ ] Add a **new server block** to the existing FalconUp nginx (`server_name music.julia7hk.com`) — don't run a second nginx (port 80 conflict). Route `/api/*`, `/callback`, `/logout` → Flask; `/` → Next.js.
 - [ ] Cloudflare DNS: add `music` subdomain → the same VM; TLS terminated at Cloudflare (nginx sees http:80, forwards `X-Forwarded-Proto https`).
 - [ ] Production config in `main.py`: redirect URI + `/callback` final redirect → `https://music.julia7hk.com`; replace hardcoded session secret (`'spotify-dashboard-dev-key'`) with an env secret; `SESSION_COOKIE_SECURE=True` + trust the forwarded proto.
-- [ ] (Optional) GitHub Actions CI to build/push images to `ghcr.io` like FalconUp.
+- [x] Images built on oc40 — `compose.yaml` uses `build:`, run `docker compose up -d --build` (oc40 is ARM64 so it builds native arm64). Full step-by-step in [deploy.md](deploy.md).
 
 ## Concrete test cases (hold the engine to these)
 
