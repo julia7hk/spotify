@@ -1,20 +1,152 @@
 @import "tailwindcss";
 
+/* ---------------------------------------------------------------------------
+   Design tokens — "soft modern", one hue family + true neutrals.
+
+   RULE: components must never contain a literal hex value. Every colour comes
+   from a token below. That is what makes the dark palette a one-block change
+   instead of an edit across 15 component files.
+
+   Currently LIGHT ONLY by design. The dark palette is defined under
+   [data-theme="dark"] but nothing sets that attribute yet, so it is inert.
+   To enable dark mode later:
+     1. uncomment the @media (prefers-color-scheme: dark) block, and
+     2. add a toggle that sets data-theme="light" | "dark" on <html>.
+   No component changes required.
+--------------------------------------------------------------------------- */
+
 :root {
-  --background: #5E6472;
-  --foreground: #FFFEF8;
-  --primary: #FFA69E;
-  --primary-hover: #B8F2E6;
-  --card-bg: #6E7482;
-  --card-hover: #AED9E0;
-  --text-muted: #AED9E0;
+  /* surfaces */
+  --bg: #fcfcfd;
+  --surface: #f4f4f7;
+  --surface-hover: #ebebf1;
+  --surface-sunken: #e8e8ee;
+  --border: #e4e4ea;
+  --border-strong: #d2d2db;
+
+  /* text */
+  --ink: #1a1a21;
+  --muted: #71717a;
+  --faint: #a1a1aa;
+
+  /* one accent hue, many tints — hover DARKENS the same hue */
+  --accent: #7c6bf0;
+  --accent-hover: #6250e4;
+  --accent-press: #4f3fd1;
+  --accent-2: #a99bf5;
+  --accent-soft: #eeebfe;
+  --accent-ring: rgba(124, 107, 240, 0.35);
+  --on-accent: #ffffff;
+
+  /* sparingly used semantics, temperature-matched to the accent */
+  --positive: #3f9e79;
+  --caution: #c98a2e;
+
+  /* categorical mood hues — desaturated to sit with the periwinkle accent */
+  --mood-happy: #e0a12e;
+  --mood-sad: #5c7cd4;
+  --mood-energetic: #d4576b;
+  --mood-chill: #3f9e79;
+  --mood-angry: #b8433f;
+  --on-mood: #ffffff;
+
+  /* sequential data ramp — same hue family, light → dark */
+  --data-1: #ded8fc;
+  --data-2: #c6bbf9;
+  --data-3: #ad9ef6;
+  --data-4: #9482f3;
+  --data-5: #7c6bf0;
+  --data-6: #6555da;
+  --data-7: #5243b8;
+  --data-8: #3f3391;
+
+  /* elevation — soft, tinted toward the accent rather than pure black */
+  --shadow-sm: 0 1px 2px rgba(26, 26, 33, 0.04);
+  --shadow-md: 0 2px 8px rgba(26, 26, 33, 0.06);
+  --shadow-lg: 0 8px 28px rgba(60, 50, 130, 0.10);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
 }
 
+[data-theme="dark"] {
+  --bg: #0e0e12;
+  --surface: #17171e;
+  --surface-hover: #1f1f28;
+  --surface-sunken: #101016;
+  --border: #26262f;
+  --border-strong: #33333f;
+
+  --ink: #f2f2f5;
+  --muted: #9a9aa8;
+  --faint: #6b6b7a;
+
+  --accent: #9384f5;
+  --accent-hover: #a89bf8;
+  --accent-press: #bcb2fa;
+  --accent-2: #6f5fd8;
+  --accent-soft: #1e1a35;
+  --accent-ring: rgba(147, 132, 245, 0.4);
+  --on-accent: #14101f;
+
+  --positive: #4fb894;
+  --caution: #dda54a;
+
+  --mood-happy: #e8b855;
+  --mood-sad: #7e9ae8;
+  --mood-energetic: #e87a8c;
+  --mood-chill: #5cc9a1;
+  --mood-angry: #d66a66;
+  --on-mood: #14101f;
+
+  --data-1: #2a2450;
+  --data-2: #382f68;
+  --data-3: #473b82;
+  --data-4: #57489c;
+  --data-5: #6a5ab8;
+  --data-6: #8072d4;
+  --data-7: #9b8eea;
+  --data-8: #bcb2fa;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 8px 28px rgba(0, 0, 0, 0.55);
+}
+
+/* Later: uncomment to follow the OS setting, with [data-theme] still winning.
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { ...copy the dark block above... }
+}
+*/
+
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-press: var(--accent-press);
+  --color-accent-2: var(--accent-2);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+
+  --color-positive: var(--positive);
+  --color-caution: var(--caution);
+
+  --radius-card: var(--radius-lg);
+
+  --font-sans: var(--font-jakarta);
+  --font-mono: var(--font-mono-code);
 }
 
 html {
@@ -22,18 +154,33 @@ html {
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-jakarta), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Numbers should never jitter when they change (stat tiles, counts, timers). */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Consistent, visible keyboard focus everywhere — was missing entirely before. */
+:where(a, button, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #AED9E0 transparent;
+  scrollbar-color: var(--border-strong) transparent;
 }
 
 *::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 
 *::-webkit-scrollbar-track {
@@ -41,6 +188,45 @@ body {
 }
 
 *::-webkit-scrollbar-thumb {
-  background-color: #AED9E0;
+  background-color: var(--border-strong);
   border-radius: 4px;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise {
+  animation: rise 0.35s ease-out both;
+}
+
+@keyframes grow-x {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.grow-x {
+  transform-origin: left;
+  animation: grow-x 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .grow-x {
+    animation: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
 }
