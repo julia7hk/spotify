@@ -48,6 +48,84 @@ sp_oauth = SpotifyOAuth(
 sp = Spotify(auth_manager=sp_oauth)
 
 
+# ---------------------------------------------------------------------------
+# Response normalizers.
+#
+# Spotify strips fields from its objects without notice (Aug 2026: artists lost
+# `genres`/`popularity`/`followers`, tracks lost `popularity`, simplified
+# playlists lost `tracks.total`). Reading raw wire JSON inline in every route is
+# what let one upstream change break six routes at once, so all field access now
+# goes through here. When the next field disappears, fix it in this block only.
+#
+# Stepping stone toward the `spotify_client.py` extraction in CLAUDE.md.
+# ---------------------------------------------------------------------------
+
+TIME_RANGES = {'short_term', 'medium_term', 'long_term'}
+DEFAULT_RANGE = 'medium_term'
+
+
+def requested_range(default=DEFAULT_RANGE):
+    """Read ?range= from the query string, falling back to a safe default."""
+    tr = request.args.get('range', default)
+    return tr if tr in TIME_RANGES else default
+
+
+def _first_image(obj):
+    images = (obj or {}).get('images') or []
+    return images[0]['url'] if images else None
+
+
+def to_artist(raw):
+    """Normalize an artist object. `genres`/`popularity`/`followers` are gone."""
+    return {
+        'id': raw.get('id'),
+        'name': raw.get('name'),
+        'genres': raw.get('genres', []),          # empty until Last.fm enrichment
+        'popularity': raw.get('popularity'),      # None — no longer served
+        'followers': (raw.get('followers') or {}).get('total'),
+        'url': (raw.get('external_urls') or {}).get('spotify'),
+        'image': _first_image(raw),
+    }
+
+
+def to_track(raw):
+    """Normalize a full/simplified track object. `popularity` is gone."""
+    album = raw.get('album') or {}
+    artists = raw.get('artists') or []
+    return {
+        'id': raw.get('id'),
+        'name': raw.get('name'),
+        'artist': artists[0]['name'] if artists else 'Unknown',
+        'album': album.get('name'),
+        'popularity': raw.get('popularity'),      # None — no longer served
+        'duration_ms': raw.get('duration_ms'),
+        'explicit': raw.get('explicit', False),
+        'release_date': album.get('release_date'),
+        'url': (raw.get('external_urls') or {}).get('spotify'),
+        'image': _first_image(album),
+    }
+
+
+def to_playlist(raw):
+    """Normalize a simplified playlist object. `tracks.total` is gone."""
+    return {
+        'id': raw.get('id'),
+        'name': raw.get('name'),
+        'url': (raw.get('external_urls') or {}).get('spotify'),
+        'image': _first_image(raw),
+        'tracks': (raw.get('tracks') or {}).get('total'),   # None — no longer served
+    }
+
+
+def collect_genres(raw_artists):
+    """Count genres across artists. Returns ({}, False) while Spotify serves none."""
+    counts = {}
+    for raw in raw_artists:
+        for genre in raw.get('genres') or []:
+            counts[genre] = counts.get(genre, 0) + 1
+    return counts, bool(counts)
+
+
 # Genre-to-mood mapping for mood analysis
 GENRE_MOOD_MAPPING = {
     'happy': ['party', 'dance pop', 'disco', 'funk', 'happy', 'tropical', 'summer', 'bubblegum'],
@@ -112,16 +190,10 @@ def api_playlists():
     return jsonify({
         'authenticated': True,
         'user': {
-            'name': user['display_name'],
-            'image': user['images'][0]['url'] if user['images'] else None
+            'name': user.get('display_name'),
+            'image': _first_image(user)
         },
-        'playlists': [{
-            'id': pl['id'],
-            'name': pl['name'],
-            'url': pl['external_urls']['spotify'],
-            'image': pl['images'][0]['url'] if pl['images'] else None,
-            'tracks': pl['tracks']['total']
-        } for pl in playlists['items']]
+        'playlists': [to_playlist(pl) for pl in playlists['items']]
     })
 
 
@@ -135,18 +207,15 @@ def api_top_artists():
     if not sp_oauth.validate_token(cache_handler.get_cached_token()):
         return jsonify({'authenticated': False}), 401
 
-    top_artists = sp.current_user_top_artists(limit=20, time_range='medium_term')
+    time_range = requested_range()
+    top_artists = sp.current_user_top_artists(limit=20, time_range=time_range)
+    artists = [to_artist(a) for a in top_artists['items']]
 
     return jsonify({
         'authenticated': True,
-        'top_artists': [{
-            'id': artist['id'],
-            'name': artist['name'],
-            'genres': artist['genres'],
-            'popularity': artist['popularity'],
-            'url': artist['external_urls']['spotify'],
-            'image': artist['images'][0]['url'] if artist['images'] else None
-        } for artist in top_artists['items']]
+        'range': time_range,
+        'genres_available': any(a['genres'] for a in artists),
+        'top_artists': artists
     })
 
 
@@ -155,18 +224,13 @@ def api_top_tracks():
     if not sp_oauth.validate_token(cache_handler.get_cached_token()):
         return jsonify({'authenticated': False}), 401
 
-    top_tracks = sp.current_user_top_tracks(limit=20, time_range='medium_term')
+    time_range = requested_range()
+    top_tracks = sp.current_user_top_tracks(limit=20, time_range=time_range)
 
     return jsonify({
         'authenticated': True,
-        'top_tracks': [{
-            'id': track['id'],
-            'name': track['name'],
-            'artist': track['artists'][0]['name'],
-            'album': track['album']['name'],
-            'url': track['external_urls']['spotify'],
-            'image': track['album']['images'][0]['url'] if track['album']['images'] else None
-        } for track in top_tracks['items']]
+        'range': time_range,
+        'top_tracks': [to_track(t) for t in top_tracks['items']]
     })
 
 
@@ -179,15 +243,10 @@ def api_recently_played():
 
     return jsonify({
         'authenticated': True,
-        'recently_played': [{
-            'id': item['track']['id'],
-            'name': item['track']['name'],
-            'artist': item['track']['artists'][0]['name'],
-            'album': item['track']['album']['name'],
-            'played_at': item['played_at'],
-            'url': item['track']['external_urls']['spotify'],
-            'image': item['track']['album']['images'][0]['url'] if item['track']['album']['images'] else None
-        } for item in recently_played['items']]
+        'recently_played': [
+            {**to_track(item['track']), 'played_at': item['played_at']}
+            for item in recently_played['items']
+        ]
     })
 
 # for dashboard ui purposes later i suppose
@@ -201,7 +260,7 @@ def api_me():
         'id': user['id'],
         'name': user['display_name'],
         'image': user['images'][0]['url'] if user['images'] else None,
-        'followers': user['followers']['total']
+        'followers': (user.get('followers') or {}).get('total', 0)
     })
 
 
@@ -210,50 +269,45 @@ def api_listening_profile():
     if not sp_oauth.validate_token(cache_handler.get_cached_token()):
         return jsonify({'authenticated': False}), 401
 
-    top_tracks = sp.current_user_top_tracks(limit=20)
-    top_artists = sp.current_user_top_artists(limit=20)
+    time_range = requested_range()
+    top_tracks = sp.current_user_top_tracks(limit=20, time_range=time_range)
+    top_artists = sp.current_user_top_artists(limit=20, time_range=time_range)
 
-    # ---- Genre aggregation ----
-    genre_count = {}
-    for artist in top_artists['items']:
-        for genre in artist['genres']:
-            genre_count[genre] = genre_count.get(genre, 0) + 1
+    # ---- Genre aggregation (empty until Last.fm enrichment lands) ----
+    genre_count, genres_available = collect_genres(top_artists['items'])
 
     # ---- Track metadata ----
     tracks = []
-    for idx, t in enumerate(top_tracks['items']):
-        tracks.append({
-            'id': t['id'],
-            'name': t['name'],
-            'artist': t['artists'][0]['name'],
-            'popularity': t['popularity'],
-            'duration_ms': t['duration_ms'],
-            'explicit': t['explicit'],
-            'release_year': t['album']['release_date'][:4],
-            'image': t['album']['images'][0]['url'] if t['album']['images'] else None,
-            'url': t['external_urls']['spotify'],
-            'top_rank': idx + 1
-        })
+    for idx, raw in enumerate(top_tracks['items']):
+        t = to_track(raw)
+        t['release_year'] = (t['release_date'] or '')[:4] or None
+        t['top_rank'] = idx + 1
+        tracks.append(t)
 
-    avg_popularity = sum(t['popularity'] for t in tracks) / len(tracks)
-    avg_duration = sum(t['duration_ms'] for t in tracks) / len(tracks)
+    # Spotify no longer serves track popularity; report availability honestly
+    # instead of averaging a list of Nones into a fake 0.
+    pops = [t['popularity'] for t in tracks if t['popularity'] is not None]
+    durations = [t['duration_ms'] for t in tracks if t['duration_ms'] is not None]
+    popularity_available = bool(pops)
 
-    # Sort tracks by popularity for most/least popular
-    sorted_by_popularity = sorted(tracks, key=lambda x: x['popularity'], reverse=True)
+    avg_popularity = round(sum(pops) / len(pops), 1) if pops else None
+    avg_duration_min = round(sum(durations) / len(durations) / 60000, 2) if durations else None
+    explicit_ratio = round(sum(1 for t in tracks if t['explicit']) / len(tracks), 2) if tracks else None
+
+    sorted_by_popularity = sorted(
+        tracks, key=lambda x: (x['popularity'] is not None, x['popularity']), reverse=True
+    ) if popularity_available else tracks
 
     return jsonify({
-        'top_genres': sorted(
-            genre_count.items(),
-            key=lambda x: x[1],
-            reverse=True
-        )[:10],
-        'avg_popularity': round(avg_popularity, 1),
-        'avg_duration_min': round(avg_duration / 60000, 2),
-        'explicit_ratio': round(
-            sum(1 for t in tracks if t['explicit']) / len(tracks),
-            2
-        ),
-        'release_years': [t['release_year'] for t in tracks],
+        'authenticated': True,
+        'range': time_range,
+        'genres_available': genres_available,
+        'popularity_available': popularity_available,
+        'top_genres': sorted(genre_count.items(), key=lambda x: x[1], reverse=True)[:10],
+        'avg_popularity': avg_popularity,
+        'avg_duration_min': avg_duration_min,
+        'explicit_ratio': explicit_ratio,
+        'release_years': [t['release_year'] for t in tracks if t['release_year']],
         'tracks_by_popularity': [{
             'id': t['id'],
             'name': t['name'],
@@ -272,25 +326,31 @@ def api_mood_analysis():
     if not sp_oauth.validate_token(cache_handler.get_cached_token()):
         return jsonify({'authenticated': False}), 401
 
-    top_artists = sp.current_user_top_artists(limit=50, time_range='medium_term')
+    time_range = requested_range()
+    top_artists = sp.current_user_top_artists(limit=50, time_range=time_range)
 
     moods = {'happy': 0, 'sad': 0, 'energetic': 0, 'chill': 0, 'angry': 0}
     genre_examples = {'happy': [], 'sad': [], 'energetic': [], 'chill': [], 'angry': []}
 
     for artist in top_artists['items']:
-        for genre in artist['genres']:
+        for genre in artist.get('genres') or []:
             mood = classify_genre_mood(genre)
             if mood:
                 moods[mood] += 1
                 if genre not in genre_examples[mood] and len(genre_examples[mood]) < 3:
                     genre_examples[mood].append(genre)
 
+    # Spotify no longer serves artist genres, so this classifies nothing. Say so
+    # rather than reporting a fabricated dominant mood built from all-zero counts.
+    genres_available = sum(moods.values()) > 0
     total = sum(moods.values()) or 1
     mood_percentages = {k: round(v / total * 100, 1) for k, v in moods.items()}
-    dominant_mood = max(moods, key=moods.get)
+    dominant_mood = max(moods, key=moods.get) if genres_available else None
 
     return jsonify({
         'authenticated': True,
+        'range': time_range,
+        'genres_available': genres_available,
         'dominant_mood': dominant_mood,
         'mood_breakdown': mood_percentages,
         'mood_counts': moods,
@@ -304,13 +364,10 @@ def api_genre_profile():
     if not sp_oauth.validate_token(cache_handler.get_cached_token()):
         return jsonify({'authenticated': False}), 401
 
-    top_artists = sp.current_user_top_artists(limit=50, time_range='medium_term')
+    time_range = requested_range()
+    top_artists = sp.current_user_top_artists(limit=50, time_range=time_range)
 
-    # Count genres
-    genre_count = {}
-    for artist in top_artists['items']:
-        for genre in artist['genres']:
-            genre_count[genre] = genre_count.get(genre, 0) + 1
+    genre_count, genres_available = collect_genres(top_artists['items'])
 
     # Sort by count
     sorted_genres = sorted(genre_count.items(), key=lambda x: x[1], reverse=True)
@@ -323,6 +380,8 @@ def api_genre_profile():
 
     return jsonify({
         'authenticated': True,
+        'range': time_range,
+        'genres_available': genres_available,
         'genres': [{'name': g[0], 'count': g[1]} for g in top_15_genres],
         'unique_genres': unique_genres,
         'diversity_score': diversity_score,
@@ -338,18 +397,26 @@ def api_saved_tracks():
 
     saved = sp.current_user_saved_tracks(limit=50)
 
+    tracks = [
+        {**to_track(item['track']), 'added_at': item['added_at']}
+        for item in saved['items']
+    ]
+
+    # `added_at` is the only real time-series data left in the API — bucket the
+    # page we fetched by month so the frontend can plot library growth.
+    by_month = {}
+    for t in tracks:
+        month = (t['added_at'] or '')[:7]   # YYYY-MM
+        if month:
+            by_month[month] = by_month.get(month, 0) + 1
+
     return jsonify({
         'authenticated': True,
         'total': saved['total'],
-        'tracks': [{
-            'id': item['track']['id'],
-            'name': item['track']['name'],
-            'artist': item['track']['artists'][0]['name'],
-            'album': item['track']['album']['name'],
-            'added_at': item['added_at'],
-            'url': item['track']['external_urls']['spotify'],
-            'image': item['track']['album']['images'][0]['url'] if item['track']['album']['images'] else None
-        } for item in saved['items']]
+        'tracks': tracks,
+        'added_by_month': [
+            {'month': m, 'count': c} for m, c in sorted(by_month.items())
+        ]
     })
 
 
@@ -364,15 +431,7 @@ def api_followed_artists():
     return jsonify({
         'authenticated': True,
         'total': followed['artists']['total'],
-        'artists': [{
-            'id': artist['id'],
-            'name': artist['name'],
-            'genres': artist['genres'][:3],
-            'popularity': artist['popularity'],
-            'followers': artist['followers']['total'],
-            'url': artist['external_urls']['spotify'],
-            'image': artist['images'][0]['url'] if artist['images'] else None
-        } for artist in followed['artists']['items']]
+        'artists': [to_artist(a) for a in followed['artists']['items']]
     })
 
 
@@ -391,8 +450,9 @@ def api_listening_stats():
         tracks = sp.current_user_top_tracks(limit=5, time_range=tr)
 
         stats[range_labels[tr]] = {
-            'top_artists': [a['name'] for a in artists['items']],
-            'top_tracks': [{'name': t['name'], 'artist': t['artists'][0]['name']} for t in tracks['items']]
+            'range': tr,
+            'top_artists': [to_artist(a) for a in artists['items']],
+            'top_tracks': [to_track(t) for t in tracks['items']]
         }
 
     return jsonify({

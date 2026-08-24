@@ -45,3 +45,7 @@ next-env.d.ts
 venv/
 __pycache__/
 .venv/
+
+# spotipy token cache (contains live access tokens)
+.cache
+.cache-*
