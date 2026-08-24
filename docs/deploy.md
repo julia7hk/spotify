@@ -1,8 +1,13 @@
 # Deploying to music.julia7hk.com
 
 Hosts this dashboard on the same Oracle Cloud VM (`oc40`) as FalconUp, behind the
-**existing** falconup nginx + Cloudflare. Model is identical to FalconUp: Docker
-containers on the VM, one nginx reverse proxy, Cloudflare terminates TLS.
+shared **edge-proxy** stack + Cloudflare. Model is identical to FalconUp: Docker
+containers on the VM, one shared nginx reverse proxy, Cloudflare terminates TLS.
+
+Images are built by GitHub Actions and pulled from ghcr — **the VM compiles
+nothing**. Deploy is a deliberate manual step (`docker compose pull && up -d`);
+CI stops after publishing images and prints the exact commands in its run
+summary.
 
 Result: you + up to 4 friends open `https://music.julia7hk.com` from any device
 and log in with their own Spotify. (Spotify dev-mode cap is 5 accounts — permanent,
@@ -60,54 +65,43 @@ The falconup nginx reaches this app's containers over a shared docker network:
 docker network create edge   # ok if it says "already exists"
 ```
 
-## 3. Join the falconup nginx to that network
+## 3. Install the nginx server block in edge-proxy
 
-Quick (takes effect immediately):
-
-```bash
-docker network connect edge falconup-nginx
-```
-
-Permanent (survives a falconup redeploy) — in `falconup26/ops/compose.yaml`, add
-`edge` to the nginx service and declare it external:
-
-```yaml
-  nginx:
-    # ...
-    networks:
-      - falconup
-      - edge
-networks:
-  falconup:
-    driver: bridge
-  edge:
-    external: true
-```
-
-## 4. Install the nginx server block
-
-The falconup nginx mounts `falconup26/ops/nginx/conf.d/` read-only, so drop the
-block there and reload:
+`edge-proxy` (`~/_proj/edge-proxy`) is the standalone stack that owns :80 and
+routes by hostname for every app on the VM. It mounts its own `conf.d/`
+read-only, so drop the block there and reload:
 
 ```bash
-cp spotify/ops/nginx/music.conf falconup26/ops/nginx/conf.d/music.conf
-docker exec falconup-nginx nginx -t     # sanity-check config
-docker exec falconup-nginx nginx -s reload
+cp spotify/ops/nginx/music.conf ~/_proj/edge-proxy/conf.d/music.conf
+docker exec edge-nginx nginx -t     # sanity-check config
+docker exec edge-nginx nginx -s reload
 ```
 
-> `music.conf` intentionally does NOT redefine the `map $http_upgrade ...` block —
-> it reuses the one in `falconup.conf` (same nginx). If you ever remove
-> falconup.conf, move that map into music.conf.
+> Historical note: music used to be proxied by the *falconup* nginx, joined to
+> `edge` by a runtime-only `docker network connect` that did not survive a
+> falconup redeploy. That coupling is gone — falconup and music are both
+> nginx-less backend stacks now, and neither can knock the other offline.
 
-## 5. Build and start the app
+> `music.conf` does NOT define the `map $http_upgrade ...` block — edge-proxy's
+> shared config owns it (nginx errors on a duplicate map).
+
+## 4. Pull and start the app
 
 ```bash
 cd spotify/ops
-docker compose up -d --build
+docker compose pull
+docker compose up -d
 docker compose ps          # music-backend + music-frontend should be "running"
 ```
 
-## 6. Verify
+If ghcr is unreachable, or you need to run un-pushed local changes, build from
+source instead:
+
+```bash
+docker compose -f compose.build.yaml up -d --build
+```
+
+## 5. Verify
 
 ```bash
 # from the VM: backend answers, and hands out the RIGHT client id + redirect uri
@@ -123,14 +117,34 @@ Spotify account, and you should land on the dashboard.
 
 ---
 
-## Updating later
+## Updating later (the normal deploy)
+
+Push to `main`. GitHub Actions runs the tests, builds both images and pushes them
+to ghcr tagged `:latest` and `:<commit-sha>`; the run summary prints these same
+commands. Then:
 
 ```bash
-cd spotify && git pull
-cd ops && docker compose up -d --build
+ssh oc40
+cd ~/_proj/spotify/ops
+docker compose pull && docker compose up -d
 ```
 
-nginx changes: re-copy `music.conf` and `docker exec falconup-nginx nginx -s reload`.
+No `git pull` needed for a code change — the image carries the code. You only
+need to pull the repo when a *compose* or *nginx* file changed.
+
+### Rolling back
+
+Every CI run publishes a `:<commit-sha>` tag, so rollback needs no rebuild and no
+git checkout:
+
+```bash
+MUSIC_TAG=<known-good-sha> docker compose up -d
+```
+
+Verify, then either leave it pinned or revert the bad commit on `main` and
+redeploy `:latest`.
+
+nginx changes: re-copy `music.conf` and `docker exec edge-nginx nginx -s reload`.
 
 ## Troubleshooting
 
@@ -139,5 +153,7 @@ nginx changes: re-copy `music.conf` and `docker exec falconup-nginx nginx -s rel
 | `INVALID_CLIENT: Invalid redirect URI` | Step 0A not done, or URI mismatch. Must be exactly `https://music.julia7hk.com/callback`. |
 | 403 "user may not be registered" | That Spotify account isn't in User Management (step 0A). |
 | 403 "Active premium subscription required for the owner" | The app-owner account's Premium lapsed (or a few-hours propagation delay). |
-| 502 from nginx | `music-backend`/`music-frontend` not on `edge`, or nginx not joined to `edge` (steps 2–3). Check `docker exec falconup-nginx ping music-backend`. |
+| 502 from nginx | `music-backend`/`music-frontend` not on `edge`, or edge-proxy not running. Check `docker exec edge-nginx ping music-backend`. |
+| `manifest unknown` on `docker compose pull` | CI hasn't published yet (check the Actions run), or the ghcr package is private — make it public, or `docker login ghcr.io` on the VM with a read-only PAT. |
+| Deployed but the site looks unchanged | Cloudflare cached the HTML (`s-maxage`). Hard-reload, or purge the domain's cache. |
 | Login loops back to sign-in | Stale cookie in that browser — clear cookies for the domain, or use incognito. |

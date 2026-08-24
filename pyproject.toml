@@ -11,3 +11,15 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "gunicorn>=26.0.0",
 ]
+
+[dependency-groups]
+# Dev-only. ops/Dockerfile.backend runs `uv sync --frozen --no-dev`, so pytest
+# never ships in the production image.
+dev = [
+    "pytest>=8.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# main.py lives at the repo root, not in a package, so put the root on sys.path.
+pythonpath = ["."]

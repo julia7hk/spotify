@@ -1,15 +1,24 @@
 name: music-spotify
 
-# Two containers: Flask backend + Next.js frontend. No nginx here — this stack
-# reuses the EXISTING falconup nginx (which already owns :80 on the VM) via a
-# shared external docker network `edge`. See docs/deploy.md.
+# PRODUCTION stack (oc40). Pulls prebuilt images from ghcr — the VM compiles
+# nothing. Images are built and pushed by .github/workflows/ci.yml on every
+# push to main, tagged :latest and :<commit-sha>.
+#
+# Deploy:
+#   cd ~/_proj/spotify/ops && docker compose pull && docker compose up -d
+#
+# Roll back to a known-good commit (no rebuild, no git checkout):
+#   MUSIC_TAG=<sha> docker compose up -d
+#
+# For local development use compose.build.yaml, which builds from source.
+#
+# No nginx here: the shared edge-proxy stack owns :80 on the VM and reaches
+# these containers by name over the external `edge` network. See docs/deploy.md.
+
 services:
   backend:
     container_name: music-backend
-    build:
-      context: ..
-      dockerfile: ops/Dockerfile.backend
-    image: music-backend
+    image: ghcr.io/julia7hk/spotify/backend:${MUSIC_TAG:-latest}
     restart: always
     env_file:
       - ../.env
@@ -18,10 +27,7 @@ services:
 
   frontend:
     container_name: music-frontend
-    build:
-      context: ..
-      dockerfile: ops/Dockerfile.frontend
-    image: music-frontend
+    image: ghcr.io/julia7hk/spotify/frontend:${MUSIC_TAG:-latest}
     restart: always
     env_file:
       - ../.env
@@ -29,7 +35,7 @@ services:
       - edge
 
 networks:
-  # Shared with the falconup nginx so it can reach music-backend / music-frontend
-  # by name. Create once on the VM:  docker network create edge
+  # Shared with the edge-proxy nginx so it can reach music-backend /
+  # music-frontend by name. Create once on the VM:  docker network create edge
   edge:
     external: true
