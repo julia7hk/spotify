@@ -1,0 +1,40 @@
+name: music-spotify
+
+# LOCAL / fallback stack — builds both images from source instead of pulling
+# them from ghcr. Kept in sync with compose.yaml.
+#
+#   cd ops && docker compose -f compose.build.yaml up -d --build
+#
+# Use this to reproduce a prod container locally, or on the VM if ghcr is
+# unreachable. Normal production deploys use compose.yaml (pull, don't build).
+
+services:
+  backend:
+    container_name: music-backend
+    image: music-backend
+    build:
+      context: ..
+      dockerfile: ops/Dockerfile.backend
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    networks:
+      - edge
+
+  frontend:
+    container_name: music-frontend
+    image: music-frontend
+    build:
+      context: ..
+      dockerfile: ops/Dockerfile.frontend
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    networks:
+      - edge
+
+networks:
+  # Must already exist, locally and on the VM alike, or `up` fails:
+  #   docker network create edge
+  edge:
+    external: true
