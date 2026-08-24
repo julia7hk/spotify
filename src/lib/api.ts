@@ -4,11 +4,13 @@ import type {
   TopArtist,
   TopTrack,
   RecentTrack,
+  SavedTracksResponse,
   ListeningProfile,
   DashboardData,
   ListeningStats,
   MoodAnalysis,
   GenreProfile,
+  TimeRange,
 } from "@/types/spotify";
 
 const API_BASE = "";
@@ -17,6 +19,11 @@ async function fetchWithCredentials<T>(endpoint: string): Promise<T> {
   const res = await fetch(`${API_BASE}${endpoint}`);
   if (!res.ok) throw new Error(`${endpoint} failed: ${res.status}`);
   return res.json();
+}
+
+/** Append ?range= to endpoints that accept a time window. */
+function withRange(path: string, range?: TimeRange): string {
+  return range ? `${path}?range=${range}` : path;
 }
 
 export async function getAuthUrl(): Promise<string> {
@@ -38,16 +45,16 @@ export async function getPlaylists(): Promise<Playlist[]> {
   return data.playlists;
 }
 
-export async function getTopArtists(): Promise<TopArtist[]> {
+export async function getTopArtists(range?: TimeRange): Promise<TopArtist[]> {
   const data = await fetchWithCredentials<{ top_artists: TopArtist[] }>(
-    "/api/top-artists"
+    withRange("/api/top-artists", range)
   );
   return data.top_artists;
 }
 
-export async function getTopTracks(): Promise<TopTrack[]> {
+export async function getTopTracks(range?: TimeRange): Promise<TopTrack[]> {
   const data = await fetchWithCredentials<{ top_tracks: TopTrack[] }>(
-    "/api/top-tracks"
+    withRange("/api/top-tracks", range)
   );
   return data.top_tracks;
 }
@@ -59,8 +66,16 @@ export async function getRecentlyPlayed(): Promise<RecentTrack[]> {
   return data.recently_played;
 }
 
-export async function getListeningProfile(): Promise<ListeningProfile> {
-  return fetchWithCredentials<ListeningProfile>("/api/listening-profile");
+export async function getSavedTracks(): Promise<SavedTracksResponse> {
+  return fetchWithCredentials<SavedTracksResponse>("/api/saved-tracks");
+}
+
+export async function getListeningProfile(
+  range?: TimeRange
+): Promise<ListeningProfile> {
+  return fetchWithCredentials<ListeningProfile>(
+    withRange("/api/listening-profile", range)
+  );
 }
 
 export async function getListeningStats(): Promise<ListeningStats> {
@@ -70,55 +85,60 @@ export async function getListeningStats(): Promise<ListeningStats> {
   return data.stats;
 }
 
-export async function getMoodAnalysis(): Promise<MoodAnalysis> {
-  return fetchWithCredentials<MoodAnalysis>("/api/mood-analysis");
+export async function getMoodAnalysis(range?: TimeRange): Promise<MoodAnalysis> {
+  return fetchWithCredentials<MoodAnalysis>(
+    withRange("/api/mood-analysis", range)
+  );
 }
 
-export async function getGenreProfile(): Promise<GenreProfile> {
-  return fetchWithCredentials<GenreProfile>("/api/genre-profile");
+export async function getGenreProfile(range?: TimeRange): Promise<GenreProfile> {
+  return fetchWithCredentials<GenreProfile>(
+    withRange("/api/genre-profile", range)
+  );
 }
 
-export async function fetchDashboardData(): Promise<DashboardData | null> {
+function settled<T, F>(r: PromiseSettledResult<T>, fallback: F): T | F {
+  return r.status === "fulfilled" ? r.value : fallback;
+}
+
+export async function fetchDashboardData(
+  range: TimeRange = "medium_term"
+): Promise<DashboardData | null> {
   const profile = await getCurrentUser();
   if (!profile) return null;
 
   const [
-    playlistsResult,
-    topArtistsResult,
-    topTracksResult,
-    recentResult,
-    listeningResult,
-    listeningStatsResult,
-    moodAnalysisResult,
-    genreProfileResult,
+    playlists,
+    topArtists,
+    topTracks,
+    recent,
+    saved,
+    listening,
+    stats,
+    mood,
+    genre,
   ] = await Promise.allSettled([
     getPlaylists(),
-    getTopArtists(),
-    getTopTracks(),
+    getTopArtists(range),
+    getTopTracks(range),
     getRecentlyPlayed(),
-    getListeningProfile(),
+    getSavedTracks(),
+    getListeningProfile(range),
     getListeningStats(),
-    getMoodAnalysis(),
-    getGenreProfile(),
+    getMoodAnalysis(range),
+    getGenreProfile(range),
   ]);
 
   return {
     profile,
-    playlists:
-      playlistsResult.status === "fulfilled" ? playlistsResult.value : [],
-    topArtists:
-      topArtistsResult.status === "fulfilled" ? topArtistsResult.value : [],
-    topTracks:
-      topTracksResult.status === "fulfilled" ? topTracksResult.value : [],
-    recentlyPlayed:
-      recentResult.status === "fulfilled" ? recentResult.value : [],
-    listeningProfile:
-      listeningResult.status === "fulfilled" ? listeningResult.value : null,
-    listeningStats:
-      listeningStatsResult.status === "fulfilled" ? listeningStatsResult.value : null,
-    moodAnalysis:
-      moodAnalysisResult.status === "fulfilled" ? moodAnalysisResult.value : null,
-    genreProfile:
-      genreProfileResult.status === "fulfilled" ? genreProfileResult.value : null,
+    playlists: settled(playlists, []),
+    topArtists: settled(topArtists, []),
+    topTracks: settled(topTracks, []),
+    recentlyPlayed: settled(recent, []),
+    savedTracks: settled(saved, null),
+    listeningProfile: settled(listening, null),
+    listeningStats: settled(stats, null),
+    moodAnalysis: settled(mood, null),
+    genreProfile: settled(genre, null),
   };
 }
