@@ -1,70 +1,70 @@
 import Image from "next/image";
 import type { Playlist } from "@/types/spotify";
 
-interface PlaylistCardProps {
-  playlist: Playlist;
-}
-
-function PlaylistCard({ playlist }: PlaylistCardProps) {
+function PlaylistCard({ playlist }: { playlist: Playlist }) {
   return (
     <a
       href={playlist.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group bg-[#6E7482] hover:bg-[#AED9E0] rounded-lg p-4 transition-all"
+      className="group rounded-[var(--radius-md)] border border-transparent p-2.5 transition-colors hover:border-border hover:bg-surface"
     >
-      <div className="relative mb-4 aspect-square">
+      <div className="relative mb-2.5 aspect-square overflow-hidden rounded-[var(--radius-sm)] bg-surface-sunken">
         {playlist.image ? (
           <Image
             src={playlist.image}
-            alt={playlist.name}
+            alt=""
             fill
-            sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
-            className="object-cover rounded-md shadow-lg"
+            sizes="(max-width: 640px) 45vw, (max-width: 1024px) 22vw, 160px"
+            className="object-cover"
           />
         ) : (
-          <div className="w-full h-full bg-[#AED9E0] rounded-md flex items-center justify-center">
+          <div className="flex h-full w-full items-center justify-center">
             <svg
-              className="w-16 h-16 text-[#5E6472]"
+              className="h-10 w-10 text-faint"
               fill="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden
             >
               <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
             </svg>
           </div>
         )}
-        <button className="absolute bottom-2 right-2 w-12 h-12 bg-[#FFA69E] rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all shadow-xl">
+        <span className="absolute inset-x-0 bottom-0 flex translate-y-full items-center justify-center gap-1.5 bg-accent py-1.5 text-xs font-semibold text-on-accent transition-transform group-hover:translate-y-0">
+          Open
           <svg
-            className="w-5 h-5 text-[#5E6472] ml-1"
-            fill="currentColor"
+            aria-hidden
             viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-3 w-3"
           >
-            <path d="M8 5v14l11-7z" />
+            <path d="M7 17 17 7M9 7h8v8" />
           </svg>
-        </button>
+        </span>
       </div>
-      <h3 className="font-semibold truncate mb-1 group-hover:text-[#5E6472] transition-colors">{playlist.name}</h3>
-      <p className="text-sm text-[#AED9E0] group-hover:text-[#5E6472] transition-colors">{playlist.tracks} tracks</p>
+      <h3 className="truncate text-sm font-medium text-ink">{playlist.name}</h3>
+      {/* tracks.total was removed from the API in Aug 2026 — omit rather than print "null tracks". */}
+      {playlist.tracks != null && (
+        <p className="mt-0.5 text-xs text-muted tabular">
+          {playlist.tracks} tracks
+        </p>
+      )}
     </a>
   );
 }
 
-interface PlaylistGridProps {
-  playlists: Playlist[];
-}
-
-export function PlaylistGrid({ playlists }: PlaylistGridProps) {
+export function PlaylistGrid({ playlists }: { playlists: Playlist[] }) {
   if (playlists.length === 0) return null;
 
   return (
-    <section className="mb-10">
-      <h2 className="text-2xl font-bold mb-2">Your Playlists</h2>
-      <p className="text-[#AED9E0] mb-6">{playlists.length} playlists</p>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-6">
-        {playlists.map((playlist) => (
-          <PlaylistCard key={playlist.id} playlist={playlist} />
-        ))}
-      </div>
-    </section>
+    <div className="-mx-2.5 grid grid-cols-2 gap-1 sm:grid-cols-4 lg:grid-cols-6">
+      {playlists.map((playlist) => (
+        <PlaylistCard key={playlist.id} playlist={playlist} />
+      ))}
+    </div>
   );
 }

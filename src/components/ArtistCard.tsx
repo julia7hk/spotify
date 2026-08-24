@@ -7,59 +7,62 @@ interface ArtistCardProps {
 }
 
 export function ArtistCard({ artist, rank }: ArtistCardProps) {
+  // `genres` is empty until Last.fm enrichment lands, so the subtitle falls
+  // back to the rank alone rather than printing a bare "Artist".
+  const subtitle = artist.genres[0] ?? null;
+
   return (
     <a
       href={artist.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex-shrink-0 w-40 bg-[#6E7482] hover:bg-[#AED9E0] rounded-lg p-4 transition-all"
+      className="group w-[132px] shrink-0 rounded-[var(--radius-lg)] border border-transparent p-3 transition-colors hover:border-border hover:bg-surface"
     >
       <div className="relative mb-3 aspect-square">
         {artist.image ? (
           <Image
             src={artist.image}
-            alt={artist.name}
+            alt=""
             fill
-            sizes="160px"
-            className="object-cover rounded-full shadow-lg"
+            sizes="132px"
+            className="rounded-full object-cover"
           />
         ) : (
-          <div className="w-full h-full bg-[#AED9E0] rounded-full flex items-center justify-center">
+          <div className="flex h-full w-full items-center justify-center rounded-full bg-surface-sunken">
             <svg
-              className="w-12 h-12 text-[#5E6472]"
+              className="h-10 w-10 text-faint"
               fill="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden
             >
               <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
             </svg>
           </div>
         )}
+        <span className="absolute -left-0.5 -top-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-on-accent shadow-[var(--shadow-sm)] tabular">
+          {rank}
+        </span>
       </div>
-      <h3 className="font-semibold text-sm truncate text-center group-hover:text-[#5E6472] transition-colors">
+      <h3 className="truncate text-center text-sm font-semibold text-ink">
         {artist.name}
       </h3>
-      <p className="text-xs text-[#AED9E0] group-hover:text-[#5E6472] text-center mt-1 transition-colors">
-        #{rank} · {artist.genres[0] || "Artist"}
-      </p>
+      {subtitle && (
+        <p className="mt-0.5 truncate text-center text-xs capitalize text-muted">
+          {subtitle}
+        </p>
+      )}
     </a>
   );
 }
 
-interface TopArtistsProps {
-  artists: TopArtist[];
-}
-
-export function TopArtists({ artists }: TopArtistsProps) {
+export function TopArtists({ artists }: { artists: TopArtist[] }) {
   if (artists.length === 0) return null;
 
   return (
-    <section className="mb-10">
-      <h2 className="text-2xl font-bold mb-6">Top Artists</h2>
-      <div className="flex gap-4 overflow-x-auto pb-4 -mx-2 px-2">
-        {artists.map((artist, index) => (
-          <ArtistCard key={artist.id} artist={artist} rank={index + 1} />
-        ))}
-      </div>
-    </section>
+    <div className="-mx-3 flex gap-1 overflow-x-auto px-3 pb-2">
+      {artists.map((artist, index) => (
+        <ArtistCard key={artist.id} artist={artist} rank={index + 1} />
+      ))}
+    </div>
   );
 }

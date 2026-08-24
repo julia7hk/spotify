@@ -4,49 +4,62 @@ import type { UserProfile } from "@/types/spotify";
 interface ProfileHeaderProps {
   profile: UserProfile;
   playlistCount: number;
+  savedCount?: number | null;
   onLogout: () => void;
 }
 
 export function ProfileHeader({
   profile,
   playlistCount,
+  savedCount,
   onLogout,
 }: ProfileHeaderProps) {
+  const facts = [
+    savedCount != null && `${savedCount.toLocaleString()} saved`,
+    `${playlistCount} playlists`,
+    `${profile.followers.toLocaleString()} followers`,
+  ].filter(Boolean) as string[];
+
   return (
-    <header className="relative bg-gradient-to-b from-[#FFA69E]/30 to-transparent -mx-8 -mt-8 px-8 pt-10 pb-8 mb-8">
-      <div className="max-w-6xl mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          {profile.image ? (
-            <Image
-              src={profile.image}
-              alt={profile.name}
-              width={96}
-              height={96}
-              className="w-24 h-24 rounded-full object-cover shadow-2xl border-2 border-[#FFA69E]/30"
-            />
-          ) : (
-            <div className="w-24 h-24 rounded-full bg-[#AED9E0] flex items-center justify-center shadow-2xl">
-              <span className="text-3xl font-bold text-[#5E6472]">{profile.name?.[0]}</span>
-            </div>
-          )}
-          <div>
-            <p className="text-sm text-[#AED9E0] uppercase tracking-wider font-medium">
-              Profile
-            </p>
-            <h1 className="text-4xl font-bold mt-1">{profile.name}</h1>
-            <p className="text-[#AED9E0] text-sm mt-1">
-              {profile.followers.toLocaleString()} followers {" · "}
-              {playlistCount} playlists
-            </p>
+    <header className="mb-10 flex flex-wrap items-center justify-between gap-6 border-b border-border pb-8">
+      <div className="flex items-center gap-5">
+        {profile.image ? (
+          <Image
+            src={profile.image}
+            alt=""
+            width={72}
+            height={72}
+            className="rounded-full object-cover ring-1 ring-border"
+            style={{ width: 72, height: 72 }}
+          />
+        ) : (
+          <div
+            className="flex items-center justify-center rounded-full bg-accent-soft text-2xl font-bold text-accent"
+            style={{ width: 72, height: 72 }}
+            aria-hidden
+          >
+            {profile.name?.[0]?.toUpperCase()}
           </div>
+        )}
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-accent">
+            Listening dashboard
+          </p>
+          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-ink">
+            {profile.name}
+          </h1>
+          <p className="mt-1.5 text-sm text-muted tabular">
+            {facts.join(" · ")}
+          </p>
         </div>
-        <button
-          onClick={onLogout}
-          className="text-[#AED9E0] hover:text-[#FAF3DD] transition-colors text-sm font-medium border border-[#AED9E0] hover:border-[#FAF3DD] rounded-full px-4 py-2"
-        >
-          Logout
-        </button>
       </div>
+
+      <button
+        onClick={onLogout}
+        className="rounded-full border border-border px-4 py-2 text-sm font-medium text-muted transition-colors hover:border-border-strong hover:bg-surface-hover hover:text-ink"
+      >
+        Log out
+      </button>
     </header>
   );
 }

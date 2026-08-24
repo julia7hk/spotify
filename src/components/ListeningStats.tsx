@@ -1,61 +1,105 @@
+import Image from "next/image";
 import type { ListeningStats } from "@/types/spotify";
+import { Card } from "./Section";
 
-interface ListeningStatsProps {
-  stats: ListeningStats;
+const RANGE_ORDER = ["Last 4 weeks", "Last 6 months", "All time"];
+
+function MiniRow({
+  rank,
+  image,
+  title,
+  subtitle,
+  url,
+}: {
+  rank: number;
+  image: string | null;
+  title: string;
+  subtitle?: string;
+  url: string;
+  rounded?: boolean;
+}) {
+  return (
+    <li>
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="group flex items-center gap-2.5 rounded-[var(--radius-sm)] px-1.5 py-1 transition-colors hover:bg-surface-hover"
+      >
+        <span className="w-3 shrink-0 font-mono text-[11px] text-faint tabular">
+          {rank}
+        </span>
+        {image ? (
+          <Image
+            src={image}
+            alt=""
+            width={28}
+            height={28}
+            className="rounded-[4px] object-cover"
+            style={{ width: 28, height: 28 }}
+          />
+        ) : (
+          <div className="h-7 w-7 shrink-0 rounded-[4px] bg-surface-sunken" />
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[13px] font-medium text-ink">{title}</p>
+          {subtitle && (
+            <p className="truncate text-[11px] text-muted">{subtitle}</p>
+          )}
+        </div>
+      </a>
+    </li>
+  );
 }
 
-const timeRangeOrder = ["Last 4 weeks", "Last 6 months", "All time"];
-
-export function ListeningStatsSection({ stats }: ListeningStatsProps) {
-  const sortedRanges = timeRangeOrder.filter((range) => stats[range]);
+/**
+ * Side-by-side comparison of all three windows at once — complements the
+ * TimeRangeToggle, which switches the rest of the page one window at a time.
+ */
+export function ListeningStatsSection({ stats }: { stats: ListeningStats }) {
+  const ranges = RANGE_ORDER.filter((r) => stats[r]);
+  if (ranges.length === 0) return null;
 
   return (
-    <section className="mb-10">
-      <h2 className="text-2xl font-bold mb-2">Your Listening Journey</h2>
-      <p className="text-[#AED9E0] text-sm mb-6">
-        See how your taste has evolved
-      </p>
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      {ranges.map((range) => (
+        <Card key={range}>
+          <h3 className="mb-4 inline-flex rounded-full bg-accent-soft px-2.5 py-1 text-xs font-semibold text-accent">
+            {range}
+          </h3>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {sortedRanges.map((range) => (
-          <div key={range} className="bg-[#6E7482] rounded-xl p-5">
-            <h3 className="text-lg font-semibold mb-4 text-[#B8F2E6]">{range}</h3>
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-faint">
+            Artists
+          </p>
+          <ol className="mb-4 space-y-0.5">
+            {stats[range].top_artists.map((artist, i) => (
+              <MiniRow
+                key={artist.id ?? i}
+                rank={i + 1}
+                image={artist.image}
+                title={artist.name}
+                url={artist.url}
+              />
+            ))}
+          </ol>
 
-            <div className="mb-4">
-              <p className="text-xs text-[#AED9E0] mb-2 uppercase tracking-wide">
-                Top Artists
-              </p>
-              <ol className="space-y-1">
-                {stats[range].top_artists.map((artist, idx) => (
-                  <li key={idx} className="flex items-center gap-2">
-                    <span className="text-xs text-[#AED9E0] w-4">{idx + 1}.</span>
-                    <span className="text-sm truncate">{artist}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-
-            <div>
-              <p className="text-xs text-[#AED9E0] mb-2 uppercase tracking-wide">
-                Top Tracks
-              </p>
-              <ol className="space-y-1">
-                {stats[range].top_tracks.map((track, idx) => (
-                  <li key={idx} className="flex items-center gap-2">
-                    <span className="text-xs text-[#AED9E0] w-4">{idx + 1}.</span>
-                    <div className="min-w-0 flex-1">
-                      <span className="text-sm truncate block">{track.name}</span>
-                      <span className="text-xs text-[#AED9E0] truncate block">
-                        {track.artist}
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-faint">
+            Tracks
+          </p>
+          <ol className="space-y-0.5">
+            {stats[range].top_tracks.map((track, i) => (
+              <MiniRow
+                key={track.id ?? i}
+                rank={i + 1}
+                image={track.image}
+                title={track.name}
+                subtitle={track.artist}
+                url={track.url}
+              />
+            ))}
+          </ol>
+        </Card>
+      ))}
+    </div>
   );
 }

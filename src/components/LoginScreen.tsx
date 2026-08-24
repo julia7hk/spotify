@@ -1,28 +1,32 @@
 import { SpotifyIcon } from "./SpotifyIcon";
 
-interface LoginScreenProps {
-  onLogin: () => void;
-}
-
-export function LoginScreen({ onLogin }: LoginScreenProps) {
+export function LoginScreen({ onLogin }: { onLogin: () => void }) {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-8 p-8">
-      <div className="text-center">
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <SpotifyIcon className="w-12 h-12 text-[#FFA69E]" />
-          <h1 className="text-4xl font-bold">Spotify Dashboard</h1>
+    <div className="flex min-h-screen items-center justify-center p-8">
+      <div className="rise w-full max-w-md text-center">
+        <div
+          aria-hidden
+          className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-soft"
+        >
+          <SpotifyIcon className="h-7 w-7 text-accent" />
         </div>
-        <p className="text-[#AED9E0] text-lg">
-          Your listening stats, all in one place
+
+        <h1 className="text-3xl font-extrabold tracking-tight text-ink">
+          Listening Dashboard
+        </h1>
+        <p className="mx-auto mt-3 max-w-sm text-[15px] leading-relaxed text-muted">
+          Your top artists, tracks and library — across four weeks, six months,
+          or all time. Any day you want, not once a year.
         </p>
+
+        <button
+          onClick={onLogin}
+          className="mt-8 inline-flex items-center gap-2.5 rounded-full bg-accent px-6 py-3 text-sm font-semibold text-on-accent shadow-[var(--shadow-md)] transition-colors hover:bg-accent-hover active:bg-accent-press"
+        >
+          <SpotifyIcon className="h-4 w-4" />
+          Connect with Spotify
+        </button>
       </div>
-      <button
-        onClick={onLogin}
-        className="flex items-center gap-3 bg-[#FFA69E] hover:bg-[#B8F2E6] text-[#5E6472] font-semibold py-4 px-8 rounded-full transition-all hover:scale-105"
-      >
-        <SpotifyIcon className="w-6 h-6" />
-        Connect with Spotify
-      </button>
     </div>
   );
 }

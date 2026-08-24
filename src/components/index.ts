@@ -1,11 +1,15 @@
 export { LoadingSpinner } from "./LoadingSpinner";
 export { SpotifyIcon } from "./SpotifyIcon";
 export { LoginScreen } from "./LoginScreen";
+export { Section, Card } from "./Section";
+export { EmptyState, GenresUnavailable } from "./EmptyState";
+export { TimeRangeToggle } from "./TimeRangeToggle";
 export { ProfileHeader } from "./ProfileHeader";
 export { StatsOverview } from "./StatsOverview";
+export { LibraryTimeline } from "./LibraryTimeline";
 export { TopGenres } from "./TopGenres";
 export { ArtistCard, TopArtists } from "./ArtistCard";
-export { TopTracks, RecentlyPlayed } from "./TrackList";
+export { TopTracks, RecentlyPlayed, SavedTracksList } from "./TrackList";
 export { PlaylistGrid } from "./PlaylistGrid";
 export { ListeningStatsSection } from "./ListeningStats";
 export { GenreProfile } from "./GenreProfile";
