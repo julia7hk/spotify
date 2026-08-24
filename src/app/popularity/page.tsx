@@ -5,46 +5,65 @@ import Link from "next/link";
 import Image from "next/image";
 import type { ListeningProfile, PopularityTrack } from "@/types/spotify";
 import { getListeningProfile } from "@/lib/api";
+import { Card, EmptyState, LoadingSpinner } from "@/components";
 
-function TrackCard({ track, rank }: { track: PopularityTrack; rank: number }) {
+function BackLink() {
+  return (
+    <Link
+      href="/"
+      className="mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-muted transition-colors hover:text-ink"
+    >
+      <svg
+        aria-hidden
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="h-4 w-4"
+      >
+        <path d="M15 19l-7-7 7-7" />
+      </svg>
+      Back to dashboard
+    </Link>
+  );
+}
+
+function TrackRow({ track, rank }: { track: PopularityTrack; rank: number }) {
   return (
     <a
       href={track.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center gap-4 p-3 bg-[#6E7482] hover:bg-[#7E8492] rounded-lg transition-colors"
+      className="flex items-center gap-3 rounded-[var(--radius-md)] border border-border bg-surface p-2.5 transition-colors hover:bg-surface-hover"
     >
-      <span className="text-[#AED9E0] text-sm w-6 text-right font-mono">
+      <span className="w-5 shrink-0 text-right font-mono text-xs text-faint tabular">
         {rank}
       </span>
-      <div className="relative w-12 h-12 flex-shrink-0">
-        {track.image ? (
-          <Image
-            src={track.image}
-            alt={track.name}
-            fill
-            sizes="48px"
-            className="object-cover rounded"
-          />
-        ) : (
-          <div className="w-full h-full bg-[#494e5a] rounded flex items-center justify-center">
-            <svg
-              className="w-6 h-6 text-[#AED9E0]"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-            </svg>
-          </div>
-        )}
+      {track.image ? (
+        <Image
+          src={track.image}
+          alt=""
+          width={44}
+          height={44}
+          className="rounded-[6px] object-cover"
+          style={{ width: 44, height: 44 }}
+        />
+      ) : (
+        <div className="h-11 w-11 shrink-0 rounded-[6px] bg-surface-sunken" />
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-ink">{track.name}</p>
+        <p className="truncate text-xs text-muted">{track.artist}</p>
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-medium truncate">{track.name}</p>
-        <p className="text-sm text-[#AED9E0] truncate">{track.artist}</p>
-      </div>
-      <div className="text-right">
-        <p className="text-2xl font-bold">{track.popularity}</p>
-        <p className="text-xs text-[#AED9E0]">popularity</p>
+      <div className="shrink-0 text-right">
+        <p className="text-xl font-bold text-ink tabular">
+          {track.popularity ?? "—"}
+        </p>
+        <p className="text-[10px] uppercase tracking-wide text-faint">
+          popularity
+        </p>
       </div>
     </a>
   );
@@ -61,41 +80,63 @@ export default function PopularityPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
   useEffect(() => {
-    async function fetchData() {
+    (async () => {
       try {
-        const data = await getListeningProfile();
-        setProfile(data);
+        setProfile(await getListeningProfile());
       } catch {
         setError("Failed to load popularity data");
       } finally {
         setLoading(false);
       }
-    }
-    fetchData();
+    })();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#FFA69E]"></div>
-      </div>
-    );
-  }
+  if (loading) return <LoadingSpinner />;
 
   if (error || !profile) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <p className="text-[#AED9E0]">{error || "No data available"}</p>
-        <Link href="/" className="text-[#FFA69E] hover:underline">
-          Back to Dashboard
-        </Link>
+      <div className="mx-auto max-w-3xl px-6 py-10">
+        <BackLink />
+        <EmptyState
+          title="Couldn't load this page"
+          reason={error ?? "No data available."}
+        />
       </div>
     );
   }
 
-  const tracks = profile.tracks_by_popularity || [];
-  const mostPopular = tracks.slice(0, 5);
-  const leastPopular = [...tracks].reverse().slice(0, 5);
+  const tracks = profile.tracks_by_popularity ?? [];
+
+  // Spotify removed track popularity in Aug 2026. Rather than render a page of
+  // dashes and a 0/100 meter, say what happened.
+  if (!profile.popularity_available) {
+    return (
+      <div className="mx-auto max-w-3xl px-6 py-10">
+        <BackLink />
+        <h1 className="mb-2 text-3xl font-extrabold tracking-tight text-ink">
+          Popularity analysis
+        </h1>
+        <p className="mb-8 text-sm text-muted">
+          Comparing how mainstream your taste is
+        </p>
+        <EmptyState
+          title="Popularity scores are no longer available"
+          reason="Spotify removed the popularity field from track objects in August 2026. Every score this page ranked by now comes back empty, so there is nothing to sort."
+          next="Your top tracks are still on the dashboard — they're just ranked by play frequency instead. Reviving this page would need a different signal, such as your own play counts."
+        />
+      </div>
+    );
+  }
+
+  const sortedTracks = [...tracks].sort((a, b) => {
+    const multiplier = sortDirection === "asc" ? 1 : -1;
+    const av = a[sortField] ?? 0;
+    const bv = b[sortField] ?? 0;
+    return (av - bv) * multiplier;
+  });
+
+  const mostPopular = sortedTracks.slice(0, 5);
+  const leastPopular = [...sortedTracks].reverse().slice(0, 5);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -106,166 +147,84 @@ export default function PopularityPage() {
     }
   };
 
-  const sortedTracks = [...tracks].sort((a, b) => {
-    const multiplier = sortDirection === "asc" ? 1 : -1;
-    return (a[sortField] - b[sortField]) * multiplier;
-  });
-
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-4xl mx-auto">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-[#AED9E0] hover:text-white mb-8 transition-colors"
-        >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-          Back to Dashboard
-        </Link>
+    <div className="mx-auto max-w-4xl px-6 py-10">
+      <BackLink />
 
-        <h1 className="text-4xl font-bold mb-2">Popularity Analysis</h1>
-        <p className="text-[#AED9E0] mb-8">
-          Based on your top {tracks.length} tracks from the last 6 months
+      <h1 className="mb-2 text-3xl font-extrabold tracking-tight text-ink">
+        Popularity analysis
+      </h1>
+      <p className="mb-8 text-sm text-muted">
+        Based on your top {tracks.length} tracks
+      </p>
+
+      <Card className="mb-10 text-center">
+        <p className="text-sm text-muted">Average popularity</p>
+        <p className="mt-1 text-5xl font-bold text-ink tabular">
+          {profile.avg_popularity}
+          <span className="ml-1 text-lg font-medium text-muted">/ 100</span>
         </p>
+        <div className="mx-auto mt-5 h-2 max-w-md overflow-hidden rounded-full bg-surface-sunken">
+          <div
+            className="grow-x h-full rounded-full bg-accent"
+            style={{ width: `${profile.avg_popularity ?? 0}%` }}
+          />
+        </div>
+      </Card>
 
-        <div className="bg-[#6E7482] rounded-xl p-8 mb-10 text-center">
-          <p className="text-[#AED9E0] text-sm mb-2">Average Popularity</p>
-          <p className="text-6xl font-bold mb-2">{profile.avg_popularity}</p>
-          <p className="text-[#AED9E0]">out of 100</p>
-          <div className="mt-4 h-3 bg-[#494e5a] rounded-full overflow-hidden max-w-md mx-auto">
-            <div
-              className="h-full bg-[#FFA69E] rounded-full transition-all duration-500"
-              style={{ width: `${profile.avg_popularity}%` }}
-            />
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+        <section>
+          <h2 className="text-lg font-bold text-ink">Most popular</h2>
+          <p className="mb-4 text-sm text-muted">Your mainstream favourites</p>
+          <div className="space-y-2">
+            {mostPopular.map((track, idx) => (
+              <TrackRow key={track.id} track={track} rank={idx + 1} />
+            ))}
           </div>
-        </div>
+        </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <section>
-            <h2 className="text-2xl font-bold mb-4">Most Popular</h2>
-            <p className="text-[#AED9E0] text-sm mb-4">
-              Your mainstream favorites
-            </p>
-            <div className="space-y-3">
-              {mostPopular.map((track, idx) => (
-                <TrackCard key={track.id} track={track} rank={idx + 1} />
-              ))}
-            </div>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-bold mb-4">Least Popular</h2>
-            <p className="text-[#AED9E0] text-sm mb-4">Your hidden gems</p>
-            <div className="space-y-3">
-              {leastPopular.map((track, idx) => (
-                <TrackCard key={track.id} track={track} rank={idx + 1} />
-              ))}
-            </div>
-          </section>
-        </div>
-
-        <section className="mt-12">
-          <h2 className="text-2xl font-bold mb-4">All Tracks</h2>
-          <p className="text-[#AED9E0] text-sm mb-6">
-            All {tracks.length} tracks used in calculating your average popularity
-          </p>
-          <div className="bg-[#6E7482] rounded-xl overflow-hidden">
-            <div className="grid grid-cols-[auto_1fr_auto_auto] gap-4 px-4 py-3 border-b border-[#494e5a] text-[#AED9E0] text-sm font-medium">
-              <span className="w-8 text-right">#</span>
-              <span>Track</span>
-              <button
-                onClick={() => toggleSort("top_rank")}
-                className="w-20 text-center hover:text-white transition-colors flex items-center justify-center gap-1"
-              >
-                Top Rank
-                {sortField === "top_rank" && (
-                  <svg
-                    className={`w-3 h-3 transition-transform ${sortDirection === "desc" ? "rotate-180" : ""}`}
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M7 14l5-5 5 5H7z" />
-                  </svg>
-                )}
-              </button>
-              <button
-                onClick={() => toggleSort("popularity")}
-                className="w-20 text-right hover:text-white transition-colors flex items-center justify-end gap-1"
-              >
-                Popularity
-                {sortField === "popularity" && (
-                  <svg
-                    className={`w-3 h-3 transition-transform ${sortDirection === "desc" ? "rotate-180" : ""}`}
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M7 14l5-5 5 5H7z" />
-                  </svg>
-                )}
-              </button>
-            </div>
-            {sortedTracks.map((track, idx) => (
-              <a
-                key={track.id}
-                href={track.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="grid grid-cols-[auto_1fr_auto_auto] gap-4 px-4 py-3 hover:bg-[#7E8492] transition-colors items-center"
-              >
-                <span className="text-[#AED9E0] text-sm w-8 text-right font-mono">
-                  {idx + 1}
-                </span>
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="relative w-10 h-10 flex-shrink-0">
-                    {track.image ? (
-                      <Image
-                        src={track.image}
-                        alt={track.name}
-                        fill
-                        sizes="40px"
-                        className="object-cover rounded"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-[#494e5a] rounded flex items-center justify-center">
-                        <svg
-                          className="w-5 h-5 text-[#AED9E0]"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-medium truncate">{track.name}</p>
-                    <p className="text-sm text-[#AED9E0] truncate">{track.artist}</p>
-                  </div>
-                </div>
-                <div className="w-20 text-center">
-                  <span className="text-[#AED9E0] font-mono">{`#${track.top_rank}`}</span>
-                </div>
-                <div className="w-20 text-right">
-                  <span className="inline-flex items-center justify-center w-12 h-8 bg-[#494e5a] rounded-full font-bold text-sm">
-                    {track.popularity}
-                  </span>
-                </div>
-              </a>
+        <section>
+          <h2 className="text-lg font-bold text-ink">Least popular</h2>
+          <p className="mb-4 text-sm text-muted">Your hidden gems</p>
+          <div className="space-y-2">
+            {leastPopular.map((track, idx) => (
+              <TrackRow key={track.id} track={track} rank={idx + 1} />
             ))}
           </div>
         </section>
       </div>
+
+      <section className="mt-12">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-bold text-ink">All tracks</h2>
+          <div className="flex gap-1 rounded-full border border-border bg-surface p-1">
+            {(
+              [
+                ["popularity", "Popularity"],
+                ["top_rank", "Your rank"],
+              ] as [SortField, string][]
+            ).map(([field, label]) => (
+              <button
+                key={field}
+                onClick={() => toggleSort(field)}
+                className={
+                  sortField === field
+                    ? "rounded-full bg-accent px-3 py-1 text-xs font-semibold text-on-accent"
+                    : "rounded-full px-3 py-1 text-xs font-medium text-muted transition-colors hover:bg-surface-hover hover:text-ink"
+                }
+              >
+                {label}
+                {sortField === field && (sortDirection === "asc" ? " ↑" : " ↓")}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-2">
+          {sortedTracks.map((track, idx) => (
+            <TrackRow key={track.id} track={track} rank={idx + 1} />
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
