@@ -1,88 +1,87 @@
 import type { MoodAnalysis } from "@/types/spotify";
+import { Card } from "./Section";
+import { GenresUnavailable } from "./EmptyState";
 
-interface MoodChartProps {
-  moodAnalysis: MoodAnalysis;
-}
-
-const moodEmojis: Record<string, string> = {
-  happy: "sunny",
-  sad: "cloud-rain",
-  energetic: "bolt",
-  chill: "moon",
-  angry: "flame",
+/**
+ * Moods keep distinct hues (they're categorical, not sequential), but the set
+ * is temperature-matched to the periwinkle accent rather than the previous
+ * unrelated primaries.
+ */
+const MOOD_COLORS: Record<string, string> = {
+  happy: "var(--mood-happy)",
+  sad: "var(--mood-sad)",
+  energetic: "var(--mood-energetic)",
+  chill: "var(--mood-chill)",
+  angry: "var(--mood-angry)",
 };
 
-const moodColors: Record<string, string> = {
-  happy: "#FFD93D",
-  sad: "#6B7FD7",
-  energetic: "#FF6B6B",
-  chill: "#B8F2E6",
-  angry: "#FF4757",
-};
+export function MoodChart({ moodAnalysis }: { moodAnalysis: MoodAnalysis }) {
+  if (!moodAnalysis.genres_available || !moodAnalysis.dominant_mood) {
+    return <GenresUnavailable title="Mood can't be inferred right now" />;
+  }
 
-export function MoodChart({ moodAnalysis }: MoodChartProps) {
   const moods = Object.entries(moodAnalysis.mood_breakdown)
-    .filter(([_, percentage]) => percentage > 0)
+    .filter(([, pct]) => pct > 0)
     .sort((a, b) => b[1] - a[1]);
 
   return (
-    <section className="mb-10">
-      <h2 className="text-2xl font-bold mb-2">Your Music Mood</h2>
-      <p className="text-[#AED9E0] text-sm mb-6">
-        How your music makes you feel
-      </p>
+    <Card>
+      <div className="mb-6 border-b border-border pb-5">
+        <p className="text-sm text-muted">Dominant mood</p>
+        <p
+          className="mt-1 text-3xl font-bold capitalize"
+          style={{ color: MOOD_COLORS[moodAnalysis.dominant_mood] }}
+        >
+          {moodAnalysis.dominant_mood}
+        </p>
+      </div>
 
-      <div className="bg-[#6E7482] rounded-xl p-6">
-        <div className="text-center mb-6">
-          <p className="text-[#AED9E0] text-sm mb-2">Dominant Mood</p>
-          <p
-            className="text-4xl font-bold capitalize"
-            style={{ color: moodColors[moodAnalysis.dominant_mood] || "#FFA69E" }}
-          >
-            {moodAnalysis.dominant_mood}
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          {moods.map(([mood, percentage]) => (
-            <div key={mood}>
-              <div className="flex items-center gap-3">
-                <span className="w-24 text-sm text-[#AED9E0] capitalize">{mood}</span>
-                <div className="flex-1 h-6 bg-[#5E6472] rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full flex items-center justify-end pr-2 transition-all duration-500"
-                    style={{
-                      width: `${Math.max(percentage, 5)}%`,
-                      backgroundColor: moodColors[mood] || "#AED9E0",
-                    }}
-                  >
-                    {percentage >= 10 && (
-                      <span className="text-xs font-bold text-[#5E6472]">
-                        {percentage}%
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {percentage < 10 && (
-                  <span className="text-xs text-[#AED9E0] w-10">{percentage}%</span>
-                )}
-              </div>
-              {moodAnalysis.genre_examples?.[mood]?.length > 0 && (
-                <div className="ml-28 mt-1 flex flex-wrap gap-1">
-                  {moodAnalysis.genre_examples[mood].map((genre) => (
+      <div className="space-y-3">
+        {moods.map(([mood, pct]) => (
+          <div key={mood}>
+            <div className="flex items-center gap-3">
+              <span className="w-20 shrink-0 text-xs capitalize text-muted">
+                {mood}
+              </span>
+              <div className="h-5 flex-1 overflow-hidden rounded-[5px] bg-surface-sunken">
+                <div
+                  className="grow-x flex h-full items-center justify-end rounded-[5px] pr-2"
+                  style={{
+                    width: `${Math.max(pct, 4)}%`,
+                    backgroundColor: MOOD_COLORS[mood] ?? "var(--accent)",
+                  }}
+                >
+                  {pct >= 12 && (
                     <span
-                      key={genre}
-                      className="text-xs bg-[#5E6472] px-2 py-0.5 rounded-full text-[#AED9E0]"
+                      className="text-[10px] font-bold tabular"
+                      style={{ color: "var(--on-mood)" }}
                     >
-                      {genre}
+                      {pct}%
                     </span>
-                  ))}
+                  )}
                 </div>
+              </div>
+              {pct < 12 && (
+                <span className="w-9 shrink-0 text-[11px] text-muted tabular">
+                  {pct}%
+                </span>
               )}
             </div>
-          ))}
-        </div>
+            {moodAnalysis.genre_examples?.[mood]?.length > 0 && (
+              <div className="ml-[92px] mt-1.5 flex flex-wrap gap-1">
+                {moodAnalysis.genre_examples[mood].map((genre) => (
+                  <span
+                    key={genre}
+                    className="rounded-full bg-surface-sunken px-2 py-0.5 text-[10px] capitalize text-muted"
+                  >
+                    {genre}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
-    </section>
+    </Card>
   );
 }

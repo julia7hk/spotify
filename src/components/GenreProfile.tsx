@@ -1,88 +1,89 @@
 import type { GenreProfile as GenreProfileType } from "@/types/spotify";
+import { Card } from "./Section";
+import { GenresUnavailable } from "./EmptyState";
 
-interface GenreProfileProps {
-  genreProfile: GenreProfileType;
+/** Sequential ramp from the token set — one hue, light to dark. */
+const RAMP = [
+  "var(--data-8)",
+  "var(--data-7)",
+  "var(--data-6)",
+  "var(--data-5)",
+  "var(--data-4)",
+  "var(--data-3)",
+  "var(--data-2)",
+  "var(--data-1)",
+];
+
+function rampColor(index: number, total: number): string {
+  const step = Math.floor((index / Math.max(total - 1, 1)) * (RAMP.length - 1));
+  return RAMP[step];
 }
 
-export function GenreProfile({ genreProfile }: GenreProfileProps) {
-  const maxCount = Math.max(...genreProfile.genres.map((g) => g.count));
+export function GenreProfile({
+  genreProfile,
+}: {
+  genreProfile: GenreProfileType;
+}) {
+  if (!genreProfile.genres_available || genreProfile.genres.length === 0) {
+    return <GenresUnavailable title="No genre distribution available" />;
+  }
+
+  const max = Math.max(...genreProfile.genres.map((g) => g.count));
+  const total = genreProfile.genres.length;
 
   return (
-    <section className="mb-10">
-      <h2 className="text-2xl font-bold mb-2">Genre Profile</h2>
-      <p className="text-[#AED9E0] text-sm mb-6">
-        Your music taste distribution
-      </p>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-[#6E7482] rounded-xl p-4 text-center">
-          <p className="text-3xl font-bold text-[#FFA69E]">
+    <div className="space-y-3">
+      <div className="grid grid-cols-3 gap-3">
+        <Card>
+          <p className="text-3xl font-bold text-accent tabular">
             {genreProfile.unique_genres}
           </p>
-          <p className="text-sm text-[#AED9E0]">Unique Genres</p>
-        </div>
-        <div className="bg-[#6E7482] rounded-xl p-4 text-center">
-          <p className="text-3xl font-bold text-[#AED9E0]">
+          <p className="mt-1 text-sm text-muted">Unique genres</p>
+        </Card>
+        <Card>
+          <p className="text-3xl font-bold text-ink tabular">
             {genreProfile.diversity_score}%
           </p>
-          <p className="text-sm text-[#AED9E0]">Diversity Score</p>
-        </div>
-        <div className="bg-[#6E7482] rounded-xl p-4 text-center">
-          <p className="text-xl font-bold text-white truncate">
-            {genreProfile.top_genre || "N/A"}
+          <p className="mt-1 text-sm text-muted">Diversity score</p>
+        </Card>
+        <Card>
+          <p className="truncate text-xl font-bold capitalize text-ink">
+            {genreProfile.top_genre ?? "—"}
           </p>
-          <p className="text-sm text-[#AED9E0]">Top Genre</p>
-        </div>
+          <p className="mt-1 text-sm text-muted">Top genre</p>
+        </Card>
       </div>
 
-      <div className="bg-[#6E7482] rounded-xl p-6">
-        <h3 className="text-lg font-semibold mb-4">Genre Distribution</h3>
-        <div className="space-y-3">
+      <Card>
+        <div className="space-y-1.5">
           {genreProfile.genres.map((genre, index) => (
             <div key={genre.name} className="flex items-center gap-3">
-              <span className="w-6 text-xs text-[#AED9E0] text-right">
+              <span className="w-4 shrink-0 text-right font-mono text-[11px] text-faint tabular">
                 {index + 1}
               </span>
-              <span className="w-32 text-sm truncate" title={genre.name}>
+              <span
+                className="w-28 shrink-0 truncate text-xs capitalize text-ink"
+                title={genre.name}
+              >
                 {genre.name}
               </span>
-              <div className="flex-1 h-5 bg-[#5E6472] rounded-full overflow-hidden">
+              <div className="h-4 flex-1 overflow-hidden rounded-[4px] bg-surface-sunken">
                 <div
-                  className="h-full rounded-full transition-all duration-500"
+                  className="grow-x h-full rounded-[4px]"
                   style={{
-                    width: `${(genre.count / maxCount) * 100}%`,
-                    backgroundColor: getGenreColor(index),
+                    width: `${(genre.count / max) * 100}%`,
+                    backgroundColor: rampColor(index, total),
+                    animationDelay: `${index * 30}ms`,
                   }}
                 />
               </div>
-              <span className="w-8 text-xs text-[#AED9E0] text-right">
+              <span className="w-6 shrink-0 text-right text-[11px] text-muted tabular">
                 {genre.count}
               </span>
             </div>
           ))}
         </div>
-      </div>
-    </section>
+      </Card>
+    </div>
   );
-}
-
-function getGenreColor(index: number): string {
-  const colors = [
-    "#FFA69E",
-    "#AED9E0",
-    "#FFD93D",
-    "#6B7FD7",
-    "#FF6B6B",
-    "#B8F2E6",
-    "#FF4757",
-    "#A8E6CF",
-    "#FDCB6E",
-    "#74B9FF",
-    "#E17055",
-    "#00B894",
-    "#6C5CE7",
-    "#FFEAA7",
-    "#81ECEC",
-  ];
-  return colors[index % colors.length];
 }
