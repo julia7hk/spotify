@@ -149,7 +149,14 @@ function TrackItem({ track, rank, meta, onSelect, selected }: TrackItemProps) {
 }
 
 /** Height of one TrackItem row: 40px album art + 2 x 10px padding + 1px border. */
-const ROW_HEIGHT = 61;
+export const TRACK_ROW_HEIGHT = 61;
+
+/**
+ * Rows shown before the list scrolls. The half row is deliberate — a clipped
+ * row is the cue that there is more below. AlbumPanel imports this to match
+ * the top-tracks list height exactly.
+ */
+export const TRACK_LIST_ROWS = 10.5;
 
 function TrackPanel({
   children,
@@ -170,7 +177,7 @@ function TrackPanel({
     >
       <div
         className={maxRows ? "overflow-y-auto overscroll-contain" : undefined}
-        style={maxRows ? { maxHeight: maxRows * ROW_HEIGHT } : undefined}
+        style={maxRows ? { maxHeight: maxRows * TRACK_ROW_HEIGHT } : undefined}
       >
         {children}
       </div>
@@ -191,7 +198,7 @@ export function TopTracks({
 }) {
   if (tracks.length === 0) return null;
   return (
-    <TrackPanel maxRows={10.5}>
+    <TrackPanel maxRows={TRACK_LIST_ROWS}>
       {tracks.map((track, index) => (
         <TrackItem
           key={track.id}
@@ -209,7 +216,7 @@ export function TopTracks({
 export function RecentlyPlayed({ tracks }: { tracks: RecentTrack[] }) {
   if (tracks.length === 0) return null;
   return (
-    <TrackPanel maxRows={10.5}>
+    <TrackPanel maxRows={TRACK_LIST_ROWS}>
       {tracks.map((track) => (
         <TrackItem
           key={`${track.id}-${track.played_at}`}

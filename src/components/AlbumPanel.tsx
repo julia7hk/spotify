@@ -3,6 +3,10 @@
 import Image from "next/image";
 import type { TopTrack } from "@/types/spotify";
 import { cx } from "@/lib/utils";
+import { TRACK_LIST_ROWS, TRACK_ROW_HEIGHT } from "./TrackList";
+
+/** Matches the top-tracks list beside it, so the two columns line up exactly. */
+const PANEL_HEIGHT = TRACK_LIST_ROWS * TRACK_ROW_HEIGHT;
 
 /**
  * Skeleton for the album explorer panel.
@@ -115,7 +119,7 @@ export function RankBadge({
 
 function EmptyPanel() {
   return (
-    <div className="flex h-full min-h-[22rem] flex-col items-center justify-center gap-3 px-6 text-center">
+    <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
       <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-sunken">
         <svg
           aria-hidden
@@ -144,12 +148,15 @@ export function AlbumPanel({
   hasNext = false,
 }: AlbumPanelProps) {
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface">
+    <div
+      className="flex flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface"
+      style={{ height: PANEL_HEIGHT }}
+    >
       {!track ? (
         <EmptyPanel />
       ) : (
         <>
-          <div className="flex flex-col items-center gap-4 px-5 pb-4 pt-5">
+          <div className="flex shrink-0 flex-col items-center gap-4 px-5 pb-4 pt-5">
             <div className="relative aspect-square w-full max-w-[13rem] overflow-hidden rounded-[var(--radius-md)] bg-surface-sunken shadow-[var(--shadow-md)]">
               {track.image ? (
                 <Image
@@ -192,19 +199,20 @@ export function AlbumPanel({
             </div>
           </div>
 
-          {/* Everything below is the not-yet-wired half. */}
-          <div className="border-t border-border">
-            <div className="flex items-center justify-between px-4 py-2.5">
+          {/* Everything below is the not-yet-wired half. It absorbs whatever
+              height is left over so the panel stays flush with the list. */}
+          <div className="flex min-h-0 flex-1 flex-col border-t border-border">
+            <div className="flex shrink-0 items-center justify-between px-4 py-2.5">
               <p className="text-xs font-medium text-muted">Album tracks</p>
               <p className="font-mono text-[11px] text-faint">soon</p>
             </div>
-            <div className="border-t border-border">
+            <div className="min-h-0 flex-1 overflow-y-auto border-t border-border">
               <SkeletonRow width="72%" />
               <SkeletonRow width="55%" />
               <SkeletonRow width="64%" />
               <SkeletonRow width="48%" />
             </div>
-            <p className="px-4 py-3 text-[11px] leading-relaxed text-faint">
+            <p className="shrink-0 px-4 py-3 text-[11px] leading-relaxed text-faint">
               The album&apos;s full track list, with a rank badge on every song
               that charts in your top 50, lands once the album endpoint is
               wired up.
