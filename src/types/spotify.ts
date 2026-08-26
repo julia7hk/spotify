@@ -69,26 +69,13 @@ export interface SavedTracksResponse {
   added_by_month: MonthBucket[];
 }
 
-export interface PopularityTrack {
-  id: string;
-  name: string;
-  artist: string;
-  popularity: number | null;
-  image: string | null;
-  url: string;
-  top_rank: number;
-}
-
 export interface ListeningProfile {
   range: TimeRange;
   genres_available: boolean;
-  popularity_available: boolean;
   top_genres: [string, number][];
-  avg_popularity: number | null;
   avg_duration_min: number | null;
   explicit_ratio: number | null;
   release_years: string[];
-  tracks_by_popularity: PopularityTrack[];
 }
 
 export interface ListeningStats {

@@ -278,45 +278,23 @@ def api_listening_profile():
 
     # ---- Track metadata ----
     tracks = []
-    for idx, raw in enumerate(top_tracks['items']):
+    for raw in top_tracks['items']:
         t = to_track(raw)
         t['release_year'] = (t['release_date'] or '')[:4] or None
-        t['top_rank'] = idx + 1
         tracks.append(t)
 
-    # Spotify no longer serves track popularity; report availability honestly
-    # instead of averaging a list of Nones into a fake 0.
-    pops = [t['popularity'] for t in tracks if t['popularity'] is not None]
     durations = [t['duration_ms'] for t in tracks if t['duration_ms'] is not None]
-    popularity_available = bool(pops)
-
-    avg_popularity = round(sum(pops) / len(pops), 1) if pops else None
     avg_duration_min = round(sum(durations) / len(durations) / 60000, 2) if durations else None
     explicit_ratio = round(sum(1 for t in tracks if t['explicit']) / len(tracks), 2) if tracks else None
-
-    sorted_by_popularity = sorted(
-        tracks, key=lambda x: (x['popularity'] is not None, x['popularity']), reverse=True
-    ) if popularity_available else tracks
 
     return jsonify({
         'authenticated': True,
         'range': time_range,
         'genres_available': genres_available,
-        'popularity_available': popularity_available,
         'top_genres': sorted(genre_count.items(), key=lambda x: x[1], reverse=True)[:10],
-        'avg_popularity': avg_popularity,
         'avg_duration_min': avg_duration_min,
         'explicit_ratio': explicit_ratio,
-        'release_years': [t['release_year'] for t in tracks if t['release_year']],
-        'tracks_by_popularity': [{
-            'id': t['id'],
-            'name': t['name'],
-            'artist': t['artist'],
-            'popularity': t['popularity'],
-            'image': t['image'],
-            'url': t['url'],
-            'top_rank': t['top_rank']
-        } for t in sorted_by_popularity]
+        'release_years': [t['release_year'] for t in tracks if t['release_year']]
     })
 
 

@@ -103,20 +103,6 @@ export function StatsOverview({
     });
   }
 
-  // Only shown if Spotify ever serves track popularity again.
-  if (
-    listeningProfile.popularity_available &&
-    listeningProfile.avg_popularity != null
-  ) {
-    tiles.push({
-      label: "Avg. popularity",
-      value: String(listeningProfile.avg_popularity),
-      unit: "/ 100",
-      meter: listeningProfile.avg_popularity / 100,
-      href: "/popularity",
-    });
-  }
-
   if (tiles.length === 0) return null;
 
   return (
