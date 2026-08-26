@@ -89,12 +89,18 @@ function TrackItem({ track, rank, meta }: TrackItemProps) {
   );
 }
 
+/** Height of one TrackItem row: 40px album art + 2 x 10px padding + 1px border. */
+const ROW_HEIGHT = 61;
+
 function TrackPanel({
   children,
   className,
+  /** Cap the panel at this many rows (fractional to hint at more) and scroll the rest inside it. */
+  maxRows,
 }: {
   children: React.ReactNode;
   className?: string;
+  maxRows?: number;
 }) {
   return (
     <div
@@ -103,7 +109,12 @@ function TrackPanel({
         className
       )}
     >
-      {children}
+      <div
+        className={maxRows ? "overflow-y-auto overscroll-contain" : undefined}
+        style={maxRows ? { maxHeight: maxRows * ROW_HEIGHT } : undefined}
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -111,7 +122,7 @@ function TrackPanel({
 export function TopTracks({ tracks }: { tracks: TopTrack[] }) {
   if (tracks.length === 0) return null;
   return (
-    <TrackPanel>
+    <TrackPanel maxRows={10.5}>
       {tracks.map((track, index) => (
         <TrackItem
           key={track.id}
@@ -127,7 +138,7 @@ export function TopTracks({ tracks }: { tracks: TopTrack[] }) {
 export function RecentlyPlayed({ tracks }: { tracks: RecentTrack[] }) {
   if (tracks.length === 0) return null;
   return (
-    <TrackPanel>
+    <TrackPanel maxRows={10.5}>
       {tracks.map((track) => (
         <TrackItem
           key={`${track.id}-${track.played_at}`}
