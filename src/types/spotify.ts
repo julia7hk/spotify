@@ -41,6 +41,8 @@ export interface TopTrack {
   name: string;
   artist: string;
   album: string;
+  /** Drives the album panel — null for local files with no album. */
+  album_id: string | null;
   /** null since Aug 2026. */
   popularity: number | null;
   duration_ms: number | null;
@@ -48,6 +50,34 @@ export interface TopTrack {
   release_date: string | null;
   url: string;
   image: string | null;
+}
+
+/**
+ * A track as it appears in an album's own track list. Simplified: no album
+ * sub-object, so cover art comes from the parent `Album`, and no popularity.
+ */
+export interface AlbumTrack {
+  id: string;
+  name: string;
+  artist: string;
+  artists: string[];
+  track_number: number | null;
+  disc_number: number;
+  duration_ms: number | null;
+  explicit: boolean;
+  url: string;
+}
+
+export interface Album {
+  id: string;
+  name: string;
+  artist: string;
+  artists: string[];
+  release_date: string | null;
+  total_tracks: number | null;
+  url: string;
+  image: string | null;
+  tracks: AlbumTrack[];
 }
 
 export interface RecentTrack extends TopTrack {

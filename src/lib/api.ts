@@ -10,6 +10,7 @@ import type {
   ListeningStats,
   MoodAnalysis,
   GenreProfile,
+  Album,
   TimeRange,
 } from "@/types/spotify";
 
@@ -64,6 +65,17 @@ export async function getRecentlyPlayed(): Promise<RecentTrack[]> {
     "/api/recently-played"
   );
   return data.recently_played;
+}
+
+/**
+ * One album with its full track list. Not part of fetchDashboardData — the
+ * album panel fetches this on demand when a top track is selected.
+ */
+export async function getAlbum(albumId: string): Promise<Album> {
+  const data = await fetchWithCredentials<{ album: Album }>(
+    `/api/album/${albumId}`
+  );
+  return data.album;
 }
 
 export async function getSavedTracks(): Promise<SavedTracksResponse> {

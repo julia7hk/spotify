@@ -58,6 +58,49 @@ TRACK_TODAY = {
     "uri": "spotify:track:xyz",
 }
 
+# `GET /albums/{id}` — key set captured live 2026-08-26. Still serves images,
+# release_date, total_tracks and an embedded (paged) tracks list.
+ALBUM_TODAY = {
+    "album_type": "album",
+    "artists": [{"id": "art", "name": "Daft Punk"}],
+    "external_urls": {"spotify": "https://open.spotify.com/album/alb"},
+    "id": "alb",
+    "images": [{"url": "https://i.scdn.co/image/album.jpg", "height": 640}],
+    "name": "Discovery",
+    "release_date": "2001-03-12",
+    "release_date_precision": "day",
+    "total_tracks": 2,
+    "type": "album",
+    "uri": "spotify:album:alb",
+    "tracks": {
+        "items": [
+            {
+                "artists": [{"id": "art", "name": "Daft Punk"}],
+                "disc_number": 1,
+                "duration_ms": 320_357,
+                "explicit": False,
+                "external_urls": {"spotify": "https://open.spotify.com/track/t1"},
+                "id": "t1",
+                "name": "One More Time",
+                "track_number": 1,
+                "type": "track",
+            },
+            {
+                "artists": [{"id": "art", "name": "Daft Punk"}],
+                "disc_number": 1,
+                "duration_ms": 212_546,
+                "explicit": False,
+                "external_urls": {"spotify": "https://open.spotify.com/track/t2"},
+                "id": "t2",
+                "name": "Aerodynamic",
+                "track_number": 2,
+                "type": "track",
+            },
+        ],
+        "total": 2,
+    },
+}
+
 PLAYLIST_TODAY = {
     "id": "pl1",
     "name": "focus",
@@ -142,7 +185,9 @@ def test_to_playlist_reads_track_total_if_present():
 
 
 @pytest.mark.parametrize(
-    "fn", [main.to_artist, main.to_track, main.to_playlist], ids=lambda f: f.__name__
+    "fn",
+    [main.to_artist, main.to_track, main.to_playlist, main.to_album, main.to_album_track],
+    ids=lambda f: f.__name__,
 )
 @pytest.mark.parametrize(
     "raw",
@@ -164,6 +209,52 @@ def test_collect_genres_reports_availability():
     assert available is False
 
     assert main.collect_genres([]) == ({}, False)
+
+
+# --- to_album / to_album_track -------------------------------------------------
+
+
+def test_to_album_current_shape():
+    a = main.to_album(ALBUM_TODAY)
+    assert a["id"] == "alb"
+    assert a["name"] == "Discovery"
+    assert a["artist"] == "Daft Punk"
+    assert a["image"] == "https://i.scdn.co/image/album.jpg"
+    assert a["release_date"] == "2001-03-12"
+    assert a["total_tracks"] == 2
+    assert [t["name"] for t in a["tracks"]] == ["One More Time", "Aerodynamic"]
+
+
+def test_to_album_tolerates_missing_tracks():
+    """The panel must still render a cover if Spotify stops embedding tracks."""
+    raw = {k: v for k, v in ALBUM_TODAY.items() if k != "tracks"}
+    a = main.to_album(raw)
+    assert a["tracks"] == []
+    assert a["name"] == "Discovery"
+
+    assert main.to_album({**ALBUM_TODAY, "tracks": None})["tracks"] == []
+
+
+def test_to_album_track_has_no_album_subobject():
+    """Simplified album tracks carry no cover — it comes from the parent album."""
+    t = main.to_album_track(ALBUM_TODAY["tracks"]["items"][0])
+    assert "image" not in t
+    assert t["track_number"] == 1
+    assert t["disc_number"] == 1
+    assert t["artist"] == "Daft Punk"
+
+
+def test_to_album_track_falls_back_when_artists_missing():
+    t = main.to_album_track({"id": "t9", "name": "Untitled"})
+    assert t["artist"] == "Unknown"
+    assert t["artists"] == []
+    assert t["disc_number"] == 1
+
+
+def test_to_track_exposes_album_id():
+    """The album panel keys off this — without it there is nothing to fetch."""
+    assert main.to_track(TRACK_TODAY)["album_id"] == "alb"
+    assert main.to_track({"name": "orphan"})["album_id"] is None
 
 
 # --- ?range= validation --------------------------------------------------------

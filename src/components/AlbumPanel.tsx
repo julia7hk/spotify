@@ -1,7 +1,10 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import type { TopTrack } from "@/types/spotify";
+import type { Album, TopTrack } from "@/types/spotify";
+import { getAlbum } from "@/lib/api";
+import { buildRankIndex, lookupRank, type RankIndex } from "@/lib/rank";
 import { cx } from "@/lib/utils";
 import { TRACK_LIST_ROWS, TRACK_ROW_HEIGHT } from "./TrackList";
 
@@ -9,21 +12,21 @@ import { TRACK_LIST_ROWS, TRACK_ROW_HEIGHT } from "./TrackList";
 const PANEL_HEIGHT = TRACK_LIST_ROWS * TRACK_ROW_HEIGHT;
 
 /**
- * Skeleton for the album explorer panel.
+ * The album explorer panel.
  *
- * Real today: cover art, track name, artist, and album name — all of which the
- * clicked TopTrack already carries, so no new request is needed.
- *
- * Placeholder today: the album's own track list and the top-50 rank badges on
- * it. Both need a `/api/album/<id>` route that does not exist yet, so the list
- * renders shimmer rows and the panel says so plainly rather than pretending to
- * be empty.
+ * Header comes free from the clicked TopTrack (cover, title, artist, album), so
+ * it paints immediately. The album's own track list is fetched on demand from
+ * `/api/album/<id>`, and every track on it that also charts in the current
+ * top-tracks list gets a rank badge — exact by track ID, or `inferred` when it
+ * only matched by title across a different release.
  */
 
 interface AlbumPanelProps {
   track: TopTrack | null;
   /** Rank of `track` in the current top-tracks list, 1-based. */
   rank?: number;
+  /** The list the badges are checked against — the active time range only. */
+  topTracks: TopTrack[];
   /** Step to the previous/next song in the top-tracks list. */
   onPrev?: () => void;
   onNext?: () => void;
@@ -142,11 +145,62 @@ function EmptyPanel() {
 export function AlbumPanel({
   track,
   rank,
+  topTracks,
   onPrev,
   onNext,
   hasPrev = false,
   hasNext = false,
 }: AlbumPanelProps) {
+  const [album, setAlbum] = useState<Album | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+
+  const albumId = track?.album_id ?? null;
+
+  // Rebuilt only when the range changes the list, not on every selection.
+  const rankIndex: RankIndex | null = useMemo(
+    () => (topTracks.length ? buildRankIndex(topTracks) : null),
+    [topTracks]
+  );
+
+  useEffect(() => {
+    if (!albumId) {
+      setAlbum(null);
+      setError(false);
+      return;
+    }
+
+    // Clicking down the list fast can land responses out of order; `stale`
+    // drops anything that arrives after the selection moved on.
+    let stale = false;
+    setLoading(true);
+    setError(false);
+
+    getAlbum(albumId)
+      .then((a) => {
+        if (!stale) setAlbum(a);
+      })
+      .catch(() => {
+        if (!stale) {
+          setAlbum(null);
+          setError(true);
+        }
+      })
+      .finally(() => {
+        if (!stale) setLoading(false);
+      });
+
+    return () => {
+      stale = true;
+    };
+  }, [albumId]);
+
+  const hasInferred =
+    !loading &&
+    !!album &&
+    !!rankIndex &&
+    album.tracks.some((t) => lookupRank(rankIndex, t)?.inferred);
+
   return (
     <div
       className="flex flex-col overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface"
@@ -199,24 +253,76 @@ export function AlbumPanel({
             </div>
           </div>
 
-          {/* Everything below is the not-yet-wired half. It absorbs whatever
-              height is left over so the panel stays flush with the list. */}
+          {/* Track list absorbs the leftover height so the panel stays flush
+              with the top-tracks list beside it. */}
           <div className="flex min-h-0 flex-1 flex-col border-t border-border">
             <div className="flex shrink-0 items-center justify-between px-4 py-2.5">
               <p className="text-xs font-medium text-muted">Album tracks</p>
-              <p className="font-mono text-[11px] text-faint">soon</p>
+              {album && (
+                <p className="font-mono text-[11px] text-faint tabular">
+                  {album.tracks.length}
+                </p>
+              )}
             </div>
+
             <div className="min-h-0 flex-1 overflow-y-auto border-t border-border">
-              <SkeletonRow width="72%" />
-              <SkeletonRow width="55%" />
-              <SkeletonRow width="64%" />
-              <SkeletonRow width="48%" />
+              {loading && (
+                <>
+                  <SkeletonRow width="72%" />
+                  <SkeletonRow width="55%" />
+                  <SkeletonRow width="64%" />
+                  <SkeletonRow width="48%" />
+                </>
+              )}
+
+              {!loading && error && (
+                <p className="px-4 py-4 text-[11px] leading-relaxed text-muted">
+                  Couldn&apos;t load this album&apos;s tracks.
+                </p>
+              )}
+
+              {!loading &&
+                !error &&
+                album?.tracks.map((t) => {
+                  const match = rankIndex ? lookupRank(rankIndex, t) : null;
+                  const isCurrent = t.id === track.id;
+                  return (
+                    <a
+                      key={t.id}
+                      href={t.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cx(
+                        "flex items-center gap-2.5 border-b border-border px-4 py-2 transition-colors last:border-b-0",
+                        isCurrent ? "bg-accent-soft" : "hover:bg-surface-hover"
+                      )}
+                    >
+                      <span
+                        className={cx(
+                          "w-4 shrink-0 text-right font-mono text-[11px] tabular",
+                          isCurrent ? "text-accent" : "text-faint"
+                        )}
+                      >
+                        {t.track_number ?? "-"}
+                      </span>
+                      <p className="min-w-0 flex-1 truncate text-xs text-ink">
+                        {t.name}
+                      </p>
+                      {match && (
+                        <RankBadge rank={match.rank} inferred={match.inferred} />
+                      )}
+                    </a>
+                  );
+                })}
             </div>
-            <p className="shrink-0 px-4 py-3 text-[11px] leading-relaxed text-faint">
-              The album&apos;s full track list, with a rank badge on every song
-              that charts in your top 50, lands once the album endpoint is
-              wired up.
-            </p>
+
+            {hasInferred && (
+              <p className="shrink-0 border-t border-border px-4 py-2 text-[11px] leading-relaxed text-muted">
+                <span className="font-mono text-accent">~</span> matched by
+                title — that release differs from the one in your top tracks, so
+                the rank is a best guess.
+              </p>
+            )}
           </div>
         </>
       )}

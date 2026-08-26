@@ -104,6 +104,7 @@ export default function Home() {
               <AlbumPanel
                 track={selectedTrack}
                 rank={selectedIndex !== null ? selectedIndex + 1 : undefined}
+                topTracks={data.topTracks}
                 hasPrev={selectedIndex !== null && selectedIndex > 0}
                 hasNext={
                   selectedIndex !== null &&
