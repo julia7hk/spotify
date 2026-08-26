@@ -225,7 +225,8 @@ def api_top_tracks():
         return jsonify({'authenticated': False}), 401
 
     time_range = requested_range()
-    top_tracks = sp.current_user_top_tracks(limit=20, time_range=time_range)
+    # 50 is Spotify's max per request for top items.
+    top_tracks = sp.current_user_top_tracks(limit=50, time_range=time_range)
 
     return jsonify({
         'authenticated': True,
@@ -239,7 +240,9 @@ def api_recently_played():
     if not sp_oauth.validate_token(cache_handler.get_cached_token()):
         return jsonify({'authenticated': False}), 401
 
-    recently_played = sp.current_user_recently_played(limit=20)
+    # 50 is both the per-request max and the full extent of the play history
+    # Spotify retains — paging back with `before` returns nothing older.
+    recently_played = sp.current_user_recently_played(limit=50)
 
     return jsonify({
         'authenticated': True,

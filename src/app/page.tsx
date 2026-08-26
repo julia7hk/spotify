@@ -87,7 +87,7 @@ export default function Home() {
 
             <Section
               title="Recently played"
-              subtitle="Your last 20 plays"
+              subtitle="Your last 50 plays"
             >
               <RecentlyPlayed tracks={data.recentlyPlayed} />
             </Section>
