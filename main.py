@@ -97,12 +97,57 @@ def to_track(raw):
         'name': raw.get('name'),
         'artist': artists[0]['name'] if artists else 'Unknown',
         'album': album.get('name'),
+        'album_id': album.get('id'),
         'popularity': raw.get('popularity'),      # None — no longer served
         'duration_ms': raw.get('duration_ms'),
         'explicit': raw.get('explicit', False),
         'release_date': album.get('release_date'),
         'url': (raw.get('external_urls') or {}).get('spotify'),
         'image': _first_image(album),
+    }
+
+
+def to_album_track(raw):
+    """
+    Normalize a *simplified* track from an album's track list.
+
+    These are not full track objects: there is no `album` sub-object, so cover
+    art has to come from the parent album, and `popularity` was never served.
+    """
+    artists = raw.get('artists') or []
+    return {
+        'id': raw.get('id'),
+        'name': raw.get('name'),
+        'artist': artists[0]['name'] if artists else 'Unknown',
+        'artists': [a.get('name') for a in artists if a.get('name')],
+        'track_number': raw.get('track_number'),
+        'disc_number': raw.get('disc_number', 1),
+        'duration_ms': raw.get('duration_ms'),
+        'explicit': raw.get('explicit', False),
+        'url': (raw.get('external_urls') or {}).get('spotify'),
+    }
+
+
+def to_album(raw):
+    """
+    Normalize a full album object plus its embedded track list.
+
+    `GET /albums/{id}` still works (only the *batch* /albums?ids= form was
+    removed in the Feb-2026 dev-mode cull) and embeds the first page of tracks,
+    so one request fills the whole album panel.
+    """
+    artists = raw.get('artists') or []
+    tracks = ((raw.get('tracks') or {}).get('items')) or []
+    return {
+        'id': raw.get('id'),
+        'name': raw.get('name'),
+        'artist': artists[0]['name'] if artists else 'Unknown',
+        'artists': [a.get('name') for a in artists if a.get('name')],
+        'release_date': raw.get('release_date'),
+        'total_tracks': raw.get('total_tracks'),
+        'url': (raw.get('external_urls') or {}).get('spotify'),
+        'image': _first_image(raw),
+        'tracks': [to_album_track(t) for t in tracks],
     }
 
 
@@ -225,7 +270,8 @@ def api_top_tracks():
         return jsonify({'authenticated': False}), 401
 
     time_range = requested_range()
-    top_tracks = sp.current_user_top_tracks(limit=20, time_range=time_range)
+    # 50 is Spotify's max per request for top items.
+    top_tracks = sp.current_user_top_tracks(limit=50, time_range=time_range)
 
     return jsonify({
         'authenticated': True,
@@ -239,7 +285,9 @@ def api_recently_played():
     if not sp_oauth.validate_token(cache_handler.get_cached_token()):
         return jsonify({'authenticated': False}), 401
 
-    recently_played = sp.current_user_recently_played(limit=20)
+    # 50 is both the per-request max and the full extent of the play history
+    # Spotify retains — paging back with `before` returns nothing older.
+    recently_played = sp.current_user_recently_played(limit=50)
 
     return jsonify({
         'authenticated': True,
@@ -248,6 +296,29 @@ def api_recently_played():
             for item in recently_played['items']
         ]
     })
+
+@app.route('/api/album/<album_id>')
+def api_album(album_id):
+    if not sp_oauth.validate_token(cache_handler.get_cached_token()):
+        return jsonify({'authenticated': False}), 401
+
+    album = sp.album(album_id)
+    normalized = to_album(album)
+
+    # An album can exceed the 50 tracks embedded in the album object. Page the
+    # rest in; rare, but a compilation will hit it.
+    total = normalized['total_tracks'] or 0
+    while len(normalized['tracks']) < total:
+        page = sp.album_tracks(
+            album_id, limit=50, offset=len(normalized['tracks'])
+        )
+        items = page.get('items') or []
+        if not items:
+            break
+        normalized['tracks'].extend(to_album_track(t) for t in items)
+
+    return jsonify({'authenticated': True, 'album': normalized})
+
 
 # for dashboard ui purposes later i suppose
 @app.route('/api/me')

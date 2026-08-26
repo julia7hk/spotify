@@ -48,18 +48,42 @@ interface TrackItemProps {
   rank?: number;
   /** Right-hand metadata: a relative timestamp or the album name. */
   meta?: string | null;
+  /**
+   * When supplied, the row selects the track instead of navigating to Spotify,
+   * and the external link moves onto the arrow icon alone.
+   */
+  onSelect?: () => void;
+  selected?: boolean;
 }
 
-function TrackItem({ track, rank, meta }: TrackItemProps) {
+/** The external-link arrow, shown on row hover. */
+function OpenIcon({ className }: { className?: string }) {
   return (
-    <a
-      href={track.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group flex items-center gap-3 border-b border-border px-4 py-2.5 transition-colors last:border-b-0 hover:bg-surface-hover"
+    <svg
+      aria-hidden
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={cx("h-3.5 w-3.5 shrink-0", className)}
     >
+      <path d="M7 17 17 7M9 7h8v8" />
+    </svg>
+  );
+}
+
+function TrackItem({ track, rank, meta, onSelect, selected }: TrackItemProps) {
+  const body = (
+    <>
       {rank !== undefined && (
-        <span className="w-5 shrink-0 text-right font-mono text-xs text-faint tabular">
+        <span
+          className={cx(
+            "w-5 shrink-0 text-right font-mono text-xs tabular",
+            selected ? "text-accent" : "text-faint"
+          )}
+        >
           {rank}
         </span>
       )}
@@ -73,24 +97,66 @@ function TrackItem({ track, rank, meta }: TrackItemProps) {
           {meta}
         </p>
       )}
-      <svg
-        aria-hidden
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="h-3.5 w-3.5 shrink-0 text-faint opacity-0 transition-opacity group-hover:opacity-100"
+    </>
+  );
+
+  const rowClass =
+    "group flex items-center gap-3 border-b border-border px-4 py-2.5 transition-colors last:border-b-0";
+
+  // Non-selectable rows stay a single anchor — one big click target to Spotify.
+  if (!onSelect) {
+    return (
+      <a
+        href={track.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={cx(rowClass, "hover:bg-surface-hover")}
       >
-        <path d="M7 17 17 7M9 7h8v8" />
-      </svg>
-    </a>
+        {body}
+        <OpenIcon className="text-faint opacity-0 transition-opacity group-hover:opacity-100" />
+      </a>
+    );
+  }
+
+  // Selectable rows can't nest the anchor inside the button, so the row is a
+  // button and the Spotify link is a sibling on the arrow.
+  return (
+    <div
+      className={cx(
+        rowClass,
+        selected ? "bg-accent-soft" : "hover:bg-surface-hover"
+      )}
+    >
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-pressed={selected}
+        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+      >
+        {body}
+      </button>
+      <a
+        href={track.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`Open ${track.name} on Spotify`}
+        className="text-faint opacity-0 transition-opacity hover:text-ink group-hover:opacity-100"
+      >
+        <OpenIcon />
+      </a>
+    </div>
   );
 }
 
 /** Height of one TrackItem row: 40px album art + 2 x 10px padding + 1px border. */
-const ROW_HEIGHT = 61;
+export const TRACK_ROW_HEIGHT = 61;
+
+/**
+ * Rows shown before the list scrolls. The half row is deliberate — a clipped
+ * row is the cue that there is more below. AlbumPanel imports this to match
+ * the top-tracks list height exactly.
+ */
+export const TRACK_LIST_ROWS = 10.5;
 
 function TrackPanel({
   children,
@@ -111,7 +177,7 @@ function TrackPanel({
     >
       <div
         className={maxRows ? "overflow-y-auto overscroll-contain" : undefined}
-        style={maxRows ? { maxHeight: maxRows * ROW_HEIGHT } : undefined}
+        style={maxRows ? { maxHeight: maxRows * TRACK_ROW_HEIGHT } : undefined}
       >
         {children}
       </div>
@@ -119,16 +185,28 @@ function TrackPanel({
   );
 }
 
-export function TopTracks({ tracks }: { tracks: TopTrack[] }) {
+export function TopTracks({
+  tracks,
+  selectedId,
+  onSelect,
+}: {
+  tracks: TopTrack[];
+  /** Track currently loaded in the album panel, highlighted in the list. */
+  selectedId?: string | null;
+  /** Omit to keep rows as plain links to Spotify. */
+  onSelect?: (track: TopTrack, index: number) => void;
+}) {
   if (tracks.length === 0) return null;
   return (
-    <TrackPanel maxRows={10.5}>
+    <TrackPanel maxRows={TRACK_LIST_ROWS}>
       {tracks.map((track, index) => (
         <TrackItem
           key={track.id}
           track={track}
           rank={index + 1}
           meta={track.album}
+          selected={selectedId != null && track.id === selectedId}
+          onSelect={onSelect ? () => onSelect(track, index) : undefined}
         />
       ))}
     </TrackPanel>
@@ -138,7 +216,7 @@ export function TopTracks({ tracks }: { tracks: TopTrack[] }) {
 export function RecentlyPlayed({ tracks }: { tracks: RecentTrack[] }) {
   if (tracks.length === 0) return null;
   return (
-    <TrackPanel maxRows={10.5}>
+    <TrackPanel maxRows={TRACK_LIST_ROWS}>
       {tracks.map((track) => (
         <TrackItem
           key={`${track.id}-${track.played_at}`}

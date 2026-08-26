@@ -10,6 +10,7 @@ export { LibraryTimeline } from "./LibraryTimeline";
 export { TopGenres } from "./TopGenres";
 export { ArtistCard, TopArtists } from "./ArtistCard";
 export { TopTracks, RecentlyPlayed, SavedTracksList } from "./TrackList";
+export { AlbumPanel, RankBadge } from "./AlbumPanel";
 export { PlaylistGrid } from "./PlaylistGrid";
 export { ListeningStatsSection } from "./ListeningStats";
 export { GenreProfile } from "./GenreProfile";
