@@ -60,7 +60,10 @@ jobs:
 
   build-backend:
     name: Build Backend Image
-    runs-on: ubuntu-latest
+    # arm64 runner, natively: oc40 is an Oracle Ampere (arm64) VM, so an
+    # amd64-only image fails its `docker compose pull` with "no matching
+    # manifest". Free for public repos, and far faster than QEMU emulation.
+    runs-on: ubuntu-24.04-arm
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: [backend]
     permissions:
@@ -91,7 +94,8 @@ jobs:
 
   build-frontend:
     name: Build Frontend Image
-    runs-on: ubuntu-latest
+    # arm64, to match oc40 — see the note on build-backend.
+    runs-on: ubuntu-24.04-arm
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: [frontend]
     permissions:

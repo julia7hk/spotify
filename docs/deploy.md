@@ -154,6 +154,8 @@ nginx changes: re-copy `music.conf` and `docker exec edge-nginx nginx -s reload`
 | 403 "user may not be registered" | That Spotify account isn't in User Management (step 0A). |
 | 403 "Active premium subscription required for the owner" | The app-owner account's Premium lapsed (or a few-hours propagation delay). |
 | 502 from nginx | `music-backend`/`music-frontend` not on `edge`, or edge-proxy not running. Check `docker exec edge-nginx ping music-backend`. |
+| `no matching manifest for linux/arm64/v8` | The published image is amd64-only but oc40 is arm64. CI builds the images on `ubuntu-24.04-arm` for this reason — if that was changed, change it back. Stopgap: `docker compose -f compose.build.yaml up -d --build`. |
+| `pull access denied` / images named `music-backend` | The VM's checkout predates the ghcr `compose.yaml`. `git pull` in `~/_proj/spotify` first. |
 | `manifest unknown` on `docker compose pull` | CI hasn't published yet (check the Actions run), or the ghcr package is private — make it public, or `docker login ghcr.io` on the VM with a read-only PAT. |
 | Deployed but the site looks unchanged | Cloudflare cached the HTML (`s-maxage`). Hard-reload, or purge the domain's cache. |
 | Login loops back to sign-in | Stale cookie in that browser — clear cookies for the domain, or use incognito. |
