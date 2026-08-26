@@ -14,6 +14,12 @@
 - [x] Audited every route against the Nov 2024 + Feb 2026 API changes
 - [x] Stripped 6 dead backend routes (`audio-features`, `recommendations`, `discover-artists`, `playlist/<id>/analysis`, `artist/<id>`, `new-releases`)
 - [x] Cleaned matching frontend (`api.ts`, `page.tsx`, `types/spotify.ts`, deleted `NewReleases`/`DiscoverArtists` components) — typechecks clean
+- [x] UI refresh (Aug 2026) — token-based design system in `globals.css`, no literal hex in components; dark palette written but inert
+- [x] User-controlled time range (`TimeRangeToggle` → `?range=` threaded through every range-sensitive route)
+- [x] Normalizer layer in `main.py` (`to_artist`/`to_track`/`to_album`/`to_playlist`) + `tests/` pinning their contract, so the next Spotify field removal is a one-function fix rather than six simultaneous `KeyError`s
+- [x] CI (`.github/workflows/ci.yml`): pytest + tsc + next build on every PR; ghcr image publish on push to `main`
+- [x] Removed `/popularity` page and route (`492c5bf`) — Spotify no longer serves track popularity
+- [x] **Album explorer panel** — top tracks (left) + album panel (right); clicking a track loads its album via `GET /api/album/<id>` and badges every album track that also charts in the current top 50. Rank matching is ID-first with a normalized title fallback, flagged `inferred` in the UI. Track lists capped at 10.5 rows and scroll internally.
 
 ## Milestone 1: Unblock API Access (credentials + token persistence)
 
@@ -31,7 +37,7 @@ Premium subscription, so the app must be registered under a Premium-owning devel
 No database exists yet. Tagging + ranking need one. Personal single-user scope → **SQLite** is enough.
 
 - [ ] **Decision:** SQLite (via `sqlite3`/SQLAlchemy) vs. flat JSON cache — default SQLite
-- [ ] Schema: `track` table (spotify_id, name, artist, album, duration_ms, popularity, added_at)
+- [ ] Schema: `track` table (spotify_id, name, artist, album, album_id, duration_ms, added_at). **No `popularity` column** — Spotify stopped serving track popularity (Aug 2026); if a popularity-like signal is wanted, derive it from the user's own play counts.
 - [ ] Schema: `tag` table (track_id, key, value, source: `auto`/`manual`/`llm`, confidence)
 - [ ] Ingest the full liked-songs library (`GET /me/tracks`, paginated — was README goal #2) into `track`
 - [ ] Ingest playlists the user curates as vibe examples (incl. the existing fast-paced seed playlist)
@@ -49,7 +55,7 @@ Spotify no longer gives BPM/energy/language. Source tags elsewhere. **Lean: Last
 
 ### Auto-tag normalization
 
-- [ ] Map raw Last.fm tags → a controlled vibe vocabulary across axes. **Mood/feeling + musical texture lead** (primary organizing axes for this user); activity is secondary. Axes: `mood`, `texture` (tempo/energy/acoustic-ness), `language`, `vocals` (present/instrumental/foreign), `use_case` (activity), and **`obscurity`** — how well-known the artist is (e.g. <500k listeners "niche" vs mainstream). Note: Spotify's `artist.popularity` (0-100) + `followers` survive the API cuts and approximate obscurity; true "monthly listeners" is not exposed, so derive from those.
+- [ ] Map raw Last.fm tags → a controlled vibe vocabulary across axes. **Mood/feeling + musical texture lead** (primary organizing axes for this user); activity is secondary. Axes: `mood`, `texture` (tempo/energy/acoustic-ness), `language`, `vocals` (present/instrumental/foreign), `use_case` (activity), and **`obscurity`** — how well-known the artist is (e.g. <500k listeners "niche" vs mainstream). **Correction (Aug 2026):** an earlier version of this line said Spotify's `artist.popularity` + `followers` survive and can approximate obscurity. They do **not** — both were stripped from the artist object, verified live 2026-08-24. Obscurity now has no Spotify source at all and must come from Last.fm (`artist.getInfo` returns listener + playcount counts) or be dropped.
 - [ ] Cache enrichment per track (don't re-hit APIs); store into `tag` with `source=auto`
 - [ ] Coverage report — % of library tagged per axis, so gaps are visible (no silent blanks)
 
@@ -157,11 +163,12 @@ viable — see Backlog). So this app is *always* ≤5 whitelisted accounts.
 **Deployment plan — mirror FalconUp** (Oracle Cloud VM `oc40` + Docker Compose + nginx + Cloudflare TLS):
 - [x] Migrate backend deps to **`uv`** (`pyproject.toml` + `uv.lock`, dropped `requirements.txt`) so the Dockerfile mirrors FalconUp's.
 - [x] `load_dotenv(override=True)` in `main.py` — `.env` is the source of truth (was being shadowed by stale exported `SPOTIFY_*` shell vars → wrong Client ID).
-- [ ] `Dockerfile` (Flask backend) + `Dockerfile` (Next.js frontend) + `compose.yaml` (nginx + backend + frontend), modeled on `falconup26/ops/`.
-- [ ] Add a **new server block** to the existing FalconUp nginx (`server_name music.julia7hk.com`) — don't run a second nginx (port 80 conflict). Route `/api/*`, `/callback`, `/logout` → Flask; `/` → Next.js.
-- [ ] Cloudflare DNS: add `music` subdomain → the same VM; TLS terminated at Cloudflare (nginx sees http:80, forwards `X-Forwarded-Proto https`).
-- [ ] Production config in `main.py`: redirect URI + `/callback` final redirect → `https://music.julia7hk.com`; replace hardcoded session secret (`'spotify-dashboard-dev-key'`) with an env secret; `SESSION_COOKIE_SECURE=True` + trust the forwarded proto.
-- [x] Images built on oc40 — `compose.yaml` uses `build:`, run `docker compose up -d --build` (oc40 is ARM64 so it builds native arm64). Full step-by-step in [deploy.md](deploy.md).
+- [x] `ops/Dockerfile.backend` (gunicorn) + `ops/Dockerfile.frontend` (Next.js) + `ops/compose.yaml`.
+- [x] nginx server block — **superseded the original plan.** The plan below was to add a block to FalconUp's own nginx; what shipped instead is a standalone **`edge-proxy`** stack (`~/_proj/edge-proxy`) that owns :80 and routes by hostname, with falconup and music both as nginx-less backend stacks joined to an `edge` network. Reason: a per-app nginx can't work without a Cloudflare Tunnel doing hostname routing, and the old runtime-only `docker network connect` broke music every time falconup redeployed. Adding app #3 is now a `.conf` drop + reload.
+- [x] Cloudflare DNS: `music` subdomain → the VM, proxied; TLS terminated at Cloudflare.
+- [x] Production config in `main.py` — `FRONTEND_URL`, `SECRET_KEY`, `SESSION_COOKIE_SECURE`, `TRUST_PROXY` (ProxyFix), `FLASK_DEBUG`, all env-driven.
+- [x] **Images built in CI, not on the VM** — supersedes the earlier "built on oc40" note. GitHub Actions builds both images on `ubuntu-24.04-arm` (oc40 is arm64 Ampere; an amd64-only image fails its pull) and pushes to ghcr as `:latest` + `:<sha>`. The VM compiles nothing; `compose.build.yaml` remains as a local/offline fallback. Full step-by-step in [deploy.md](deploy.md).
+- [x] Deploy is deliberately manual — no deploy credentials in CI, nothing reaches into the VM.
 
 ## Concrete test cases (hold the engine to these)
 

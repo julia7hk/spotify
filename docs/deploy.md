@@ -36,7 +36,12 @@ Nothing below works until A is done (OAuth will 403 / "invalid redirect URI").
 ssh oc40
 git clone <this-repo> spotify   # or: cd spotify && git pull
 cd spotify
+git config pull.ff only         # this checkout should never have local commits
 ```
+
+`pull.ff only` makes a `git pull` fail loudly instead of silently creating a merge
+commit that exists only on the VM. When it does fail, the fix is
+`git reset --hard origin/main` — see Troubleshooting.
 
 Create `.env` on the VM (NOT committed) with production values:
 
@@ -59,7 +64,7 @@ shell environment.
 
 ## 2. Create the shared network (once)
 
-The falconup nginx reaches this app's containers over a shared docker network:
+`edge-proxy`'s nginx reaches this app's containers over a shared docker network:
 
 ```bash
 docker network create edge   # ok if it says "already exists"
@@ -155,6 +160,7 @@ nginx changes: re-copy `music.conf` and `docker exec edge-nginx nginx -s reload`
 | 403 "Active premium subscription required for the owner" | The app-owner account's Premium lapsed (or a few-hours propagation delay). |
 | 502 from nginx | `music-backend`/`music-frontend` not on `edge`, or edge-proxy not running. Check `docker exec edge-nginx ping music-backend`. |
 | `no matching manifest for linux/arm64/v8` | The published image is amd64-only but oc40 is arm64. CI builds the images on `ubuntu-24.04-arm` for this reason — if that was changed, change it back. Stopgap: `docker compose -f compose.build.yaml up -d --build`. |
+| `fatal: Need to specify how to reconcile divergent branches` after a `(forced update)` line | A PR was **squash-merged**, so the commits the VM had were replaced upstream. Do not merge or rebase — this checkout owns no work. `git status` to confirm the tree is clean, then `git reset --hard origin/main`. |
 | `pull access denied` / images named `music-backend` | The VM's checkout predates the ghcr `compose.yaml`. `git pull` in `~/_proj/spotify` first. |
 | `manifest unknown` on `docker compose pull` | CI hasn't published yet (check the Actions run), or the ghcr package is private — make it public, or `docker login ghcr.io` on the VM with a read-only PAT. |
 | Deployed but the site looks unchanged | Cloudflare cached the HTML (`s-maxage`). Hard-reload, or purge the domain's cache. |
