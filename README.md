@@ -1,8 +1,10 @@
 # Spotify Dashboard
 
-self-built spotify dashboard app — live at [music.julia7hk.com](https://music.julia7hk.com)
+self-built spotify dashboard app — live at [music.julia7hk.com](https://music.julia7hk.com) but limited to 5 users due to Spotify regulations
 
 Roadmap in [docs/milestones.md](docs/milestones.md) · deploy runbook in [docs/deploy.md](docs/deploy.md)
+
+<img width="1292" height="2048" alt="image" src="https://github.com/user-attachments/assets/d5c39e98-fd93-4728-a787-6f3552596a75" />
 
 
 ## How to run
@@ -33,7 +35,6 @@ npm run build         # production build (typechecks too)
 
 All three run in CI on every PR. `npm run lint` is not configured — use `tsc` + `build`.
 
-<img width="804" height="952" alt="image" src="https://github.com/user-attachments/assets/c01dc4ad-a1d7-4d0b-9a51-902f047ee40c" />
 
 ## Stack
 
