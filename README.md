@@ -4,7 +4,7 @@ self-built spotify dashboard app — live at [music.julia7hk.com](https://music.
 
 Roadmap in [docs/milestones.md](docs/milestones.md) · deploy runbook in [docs/deploy.md](docs/deploy.md)
 
-<img width="1292" height="2048" alt="image" src="https://github.com/user-attachments/assets/d5c39e98-fd93-4728-a787-6f3552596a75" />
+<img width="2056" height="1210" alt="image" src="https://github.com/user-attachments/assets/446f7744-cba9-48b6-82fb-4c37fc24d9f8" />
 
 
 ## How to run
